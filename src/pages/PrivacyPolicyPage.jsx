@@ -1,4 +1,6 @@
 import React from 'react';
+
+import { COPYRIGHT_NOTICE } from '../constants/appInfo';
 import { Link } from 'react-router-dom';
 
 export default function PrivacyPolicyPage() {
@@ -250,7 +252,7 @@ export default function PrivacyPolicyPage() {
 
         {/* Footer */}
         <div className="mt-8 text-center text-gray-600 text-sm">
-          <p>© 2026 Workside Software LLC. All rights reserved.</p>
+          <p>{COPYRIGHT_NOTICE}</p>
         </div>
       </div>
     </div>

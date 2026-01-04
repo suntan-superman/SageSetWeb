@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom';
 
+import { COPYRIGHT_NOTICE } from '../constants/appInfo';
+
 const navLinkClass = ({ isActive }) =>
   [
     'text-sm font-medium',
@@ -42,7 +44,7 @@ export default function Layout({ children }) {
 
       <footer className="border-t border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <div>© 2026 Workside Software LLC. All rights reserved.</div>
+          <div>{COPYRIGHT_NOTICE}</div>
           <div className="flex gap-4">
             <NavLink to="/privacy" className="hover:text-green-700">
               Privacy Policy

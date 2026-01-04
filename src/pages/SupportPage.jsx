@@ -7,6 +7,8 @@ import {
   ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline';
 
+import { COPYRIGHT_NOTICE } from '../constants/appInfo';
+
 export default function SupportPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -277,7 +279,7 @@ export default function SupportPage() {
 
         {/* Footer */}
         <div className="mt-8 text-sm text-center text-gray-600">
-          <p>© 2026 Workside Software LLC. All rights reserved.</p>
+          <p>{COPYRIGHT_NOTICE}</p>
         </div>
       </div>
     </div>
