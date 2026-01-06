@@ -300,7 +300,7 @@ export default function TermsOfServicePage() {
                 </h3>
                 <p className="text-gray-700 leading-relaxed">
                   If you have a dispute with us, you agree to first contact us and attempt to resolve 
-                  the dispute informally by contacting our support team at support@sagesetfitness.com.
+                  the dispute informally by contacting our support team at support@worksidesoftware.com.
                 </p>
               </div>
 
@@ -381,7 +381,7 @@ export default function TermsOfServicePage() {
             </p>
             <div className="mt-4 space-y-2">
               <p className="text-gray-700">
-                <strong>Email:</strong> <a href="mailto:support@sagesetfitness.com" className="text-green-600 hover:text-green-700">support@sagesetfitness.com</a>
+                <strong>Email:</strong> <a href="mailto:support@worksidesoftware.com" className="text-green-600 hover:text-green-700">support@worksidesoftware.com</a>
               </p>
               <p className="text-gray-700">
                 <strong>Service:</strong> SageSet Fitness

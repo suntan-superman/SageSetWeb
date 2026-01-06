@@ -1,4 +1,5 @@
 import { ArrowTopRightOnSquareIcon, CheckCircleIcon, CalendarDaysIcon, ScaleIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router-dom';
 
 const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
 const PLAY_STORE_URL = import.meta.env.VITE_PLAY_STORE_URL || '';
@@ -128,8 +129,30 @@ export default function HomePage() {
           beginning any new exercise program.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-gray-700">
+          For support, contact{' '}
+          <a className="font-semibold text-green-700 hover:text-green-800" href="mailto:support@worksidesoftware.com">
+            support@worksidesoftware.com
+          </a>
+          .
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-gray-700">
           Domain: <span className="font-semibold">sagesetfitness.com</span>
         </p>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">Links</h2>
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium">
+          <Link className="text-green-700 hover:text-green-800" to="/support">
+            Support
+          </Link>
+          <Link className="text-green-700 hover:text-green-800" to="/privacy">
+            Privacy Policy
+          </Link>
+          <Link className="text-green-700 hover:text-green-800" to="/terms">
+            Terms of Service
+          </Link>
+        </div>
       </section>
     </div>
   );

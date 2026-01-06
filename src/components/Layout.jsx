@@ -10,14 +10,14 @@ const navLinkClass = ({ isActive }) =>
 
 export default function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-gray-50 font-sans antialiased text-gray-900">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen font-sans antialiased text-gray-900 bg-gray-50">
+      <header className="bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between max-w-6xl px-4 py-4 mx-auto sm:px-6 lg:px-8">
           <NavLink to="/" className="flex items-center gap-3">
             <img
               src="/favicon.png"
               alt="SageSet"
-              className="h-9 w-9 rounded-lg"
+              className="rounded-lg h-9 w-9"
               loading="eager"
             />
             <div>
@@ -40,20 +40,23 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">{children}</main>
+      <main className="w-full max-w-6xl px-4 py-10 mx-auto sm:px-6 lg:px-8">{children}</main>
 
-      <footer className="border-t border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <footer className="bg-white border-t border-gray-200">
+        <div className="flex flex-col max-w-6xl gap-3 px-4 py-6 mx-auto text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>{COPYRIGHT_NOTICE}</div>
           <div className="flex gap-4">
+            <NavLink to="/support" className="hover:text-green-700">
+              Support
+            </NavLink>
             <NavLink to="/privacy" className="hover:text-green-700">
               Privacy Policy
             </NavLink>
             <NavLink to="/terms" className="hover:text-green-700">
               Terms of Use
             </NavLink>
-            <a className="hover:text-green-700" href="mailto:support@sagesetfitness.com">
-              support@sagesetfitness.com
+            <a className="hover:text-green-700" href="mailto:support@worksidesoftware.com">
+              support@worksidesoftware.com
             </a>
           </div>
         </div>

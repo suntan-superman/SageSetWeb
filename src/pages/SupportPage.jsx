@@ -29,7 +29,7 @@ export default function SupportPage() {
       const body = encodeURIComponent(
         `Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`
       );
-      window.location.href = `mailto:support@sagesetfitness.com?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:support@worksidesoftware.com?subject=${subject}&body=${body}`;
       setSubmitStatus('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
@@ -47,7 +47,11 @@ export default function SupportPage() {
   const faqs = [
     {
       question: 'How do I reset my password?',
-      answer: 'Use the “Forgot Password” link on the login screen. If you still need help, email support@sagesetfitness.com.'
+      answer: 'Use the “Forgot Password” link on the login screen. If you still need help, email support@worksidesoftware.com.'
+    },
+    {
+      question: 'How do I delete my account?',
+      answer: 'You can delete your account from within the app settings. If you need assistance, contact support@worksidesoftware.com.'
     },
     {
       question: 'How do I generate an AI workout plan?',
@@ -67,7 +71,7 @@ export default function SupportPage() {
     },
     {
       question: 'How do I contact support?',
-      answer: 'Email support@sagesetfitness.com and include your account email, device model, and a short description of the issue.'
+      answer: 'Email support@worksidesoftware.com and include your account email, device model, and a short description of the issue.'
     }
   ];
 
@@ -101,10 +105,10 @@ export default function SupportPage() {
               <div>
                 <h3 className="mb-1 font-medium text-gray-900">Email Support</h3>
                 <a 
-                  href="mailto:support@sagesetfitness.com" 
+                  href="mailto:support@worksidesoftware.com" 
                   className="text-green-600 hover:text-green-700"
                 >
-                  support@sagesetfitness.com
+                  support@worksidesoftware.com
                 </a>
                 <p className="mt-1 text-sm text-gray-600">
                   We typically respond within 24 hours
@@ -202,12 +206,12 @@ export default function SupportPage() {
             </div>
             {submitStatus === 'success' && (
               <div className="p-3 text-sm text-green-800 border border-green-200 rounded-md bg-green-50">
-                ✓ Your email app should open. If it doesn't, email us at support@sagesetfitness.com.
+                ✓ Your email app should open. If it doesn't, email us at support@worksidesoftware.com.
               </div>
             )}
             {submitStatus === 'error' && (
               <div className="p-3 text-sm text-red-800 border border-red-200 rounded-md bg-red-50">
-                ✗ There was an error. Please email us directly at support@sagesetfitness.com
+                ✗ There was an error. Please email us directly at support@worksidesoftware.com
               </div>
             )}
             <button
@@ -268,7 +272,7 @@ export default function SupportPage() {
               <p className="text-sm text-gray-600">Review terms for using SageSet Fitness</p>
             </Link>
             <a 
-              href="mailto:support@sagesetfitness.com" 
+              href="mailto:support@worksidesoftware.com" 
               className="p-4 transition-colors border border-gray-200 rounded-md hover:border-green-500 hover:bg-green-50"
             >
               <h3 className="mb-1 font-medium text-gray-900">Email Support</h3>
