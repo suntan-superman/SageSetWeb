@@ -1,5 +1,4 @@
 import { NavLink } from 'react-router-dom';
-
 import { COPYRIGHT_NOTICE } from '../constants/appInfo';
 
 const navLinkClass = ({ isActive }) =>
