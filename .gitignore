@@ -41,6 +41,8 @@ yarn-error.*
 .env.development
 .env.production
 
+firebase.js
+
 # typescript
 *.tsbuildinfo
 
