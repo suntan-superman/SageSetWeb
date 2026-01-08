@@ -1,173 +1,112 @@
-import { ArrowTopRightOnSquareIcon, CheckCircleIcon, CalendarDaysIcon, ScaleIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
+import { CheckCircleIcon, CalendarDaysIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
-const PLAY_STORE_URL = import.meta.env.VITE_PLAY_STORE_URL || '';
-
-const Feature = ({ icon: Icon, title, description }) => (
-  <div className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
-    <div className="flex items-center gap-3">
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-50">
-        <Icon className="w-6 h-6 text-green-700" />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-    </div>
-    <p className="mt-3 text-sm leading-relaxed text-gray-700">{description}</p>
-  </div>
-);
 
 export default function HomePage() {
   return (
-    <div className="space-y-10">
-      <section className="p-8 bg-white border border-gray-200 shadow-sm rounded-2xl">
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-              SageSet Fitness
+    <div>
+      {/* Hero Section */}
+      <section className="pt-10 pb-4 bg-white lg:pt-14 lg:pb-8">
+        <div className="px-6 mx-auto max-w-content">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl font-bold leading-tight tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Fitness planning,{' '}
+              <span className="text-sage-600">simplified.</span>
             </h1>
-            <p className="mt-4 text-lg font-medium text-gray-700">
-              A personal-first workout planner with progress tracking, weigh-ins, calendar, and AI-generated plans.
+            <p className="mt-6 text-xl leading-relaxed text-gray-600">
+              A calm, personal approach to workout planning. Build your routine, track your progress, and stay consistent—without the noise.
             </p>
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
-              Built by Workside Software LLC. Designed for daily use.
-            </p>
-
-            <div className="flex flex-col gap-3 mt-6 sm:flex-row">
-              {APP_STORE_URL && (
+            <div className="mt-4">
+              {APP_STORE_URL ? (
                 <a
                   href={APP_STORE_URL}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-green-600 rounded-xl hover:bg-green-700"
+                  className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-colors bg-sage-700 rounded-xl hover:bg-sage-800"
                   target="_blank"
                   rel="noreferrer"
                 >
                   Download on the App Store
-                  <ArrowTopRightOnSquareIcon className="w-4 h-4" />
                 </a>
+              ) : (
+                <span className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-sage-700 rounded-xl">
+                  Coming Soon
+                </span>
               )}
-              {PLAY_STORE_URL && (
-                <a
-                  href={PLAY_STORE_URL}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-gray-900 bg-white border border-gray-300 rounded-xl hover:border-green-300"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Get it on Google Play
-                  <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                </a>
-              )}
-            </div>
-
-            {/* {(!APP_STORE_URL || !PLAY_STORE_URL) && (
-              <p className="mt-3 text-xs font-medium text-gray-500">
-                App store links can be set via `VITE_APP_STORE_URL` and `VITE_PLAY_STORE_URL`.
-              </p>
-            )} */}
-          </div>
-
-          <div className="p-6 rounded-2xl bg-green-50">
-            <div className="flex items-center gap-4">
-              <img
-                src="/app-icon-1024.png"
-                alt="SageSet app icon"
-                className="w-16 h-16 rounded-2xl"
-              />
-              <div>
-                <div className="text-sm font-semibold text-green-900">What you get</div>
-                <div className="mt-1 text-sm text-green-900/80">
-                  Plans → Days → Workouts → Exercises, plus weigh-ins and calendar.
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 mt-6">
-              <div className="flex items-center gap-3 p-4 bg-white rounded-xl">
-                <CheckCircleIcon className="w-5 h-5 text-green-700" />
-                <div className="text-sm font-medium text-gray-800">Track completion with checkmarks</div>
-              </div>
-              <div className="flex items-center gap-3 p-4 bg-white rounded-xl">
-                <CalendarDaysIcon className="w-5 h-5 text-green-700" />
-                <div className="text-sm font-medium text-gray-800">See workouts on your calendar</div>
-              </div>
-              <div className="flex items-center gap-3 p-4 bg-white rounded-xl">
-                <ScaleIcon className="w-5 h-5 text-green-700" />
-                <div className="text-sm font-medium text-gray-800">Log weigh-ins and goals</div>
-              </div>
-              <div className="flex items-center gap-3 p-4 bg-white rounded-xl">
-                <SparklesIcon className="w-5 h-5 text-green-700" />
-                <div className="text-sm font-medium text-gray-800">Generate an AI plan (optional)</div>
-              </div>
             </div>
           </div>
         </div>
       </section>
-      <section className="p-8 overflow-hidden bg-white border border-gray-200 shadow-sm rounded-2xl">
-        <h2 className="mb-4 text-2xl font-bold text-gray-900">See SageSet in Action</h2>
-        <div className="flex justify-center">
-          <video
-            controls
-            poster="/Sage Set Poster.png"
-            className="w-1/2 rounded-xl"
-          >
-            <source src="/Sage Set Fitness.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+
+      {/* Value Sections */}
+      <section className="pt-10 pb-8 bg-gray-50 lg:pt-12 lg:pb-12">
+        <div className="px-6 mx-auto max-w-content">
+          <div className="grid gap-12 lg:grid-cols-3">
+            <ValueCard
+              icon={CheckCircleIcon}
+              title="Personalized plans"
+              description="Create workout plans that fit your schedule. Organize by days, workouts, and exercises—your way."
+            />
+            <ValueCard
+              icon={CalendarDaysIcon}
+              title="Progress tracking"
+              description="Mark sets complete, log weigh-ins, and watch your consistency build over time."
+            />
+            <ValueCard
+              icon={SparklesIcon}
+              title="Sustainable fitness"
+              description="No gimmicks or pressure. Just a simple tool to help you stay on track, day after day."
+            />
+          </div>
         </div>
       </section>
-      <section className="grid gap-4 md:grid-cols-2">
-        <Feature
-          icon={CheckCircleIcon}
-          title="Today-first"
-          description="Open the app, see today’s workouts, and check off sets with minimal friction."
-        />
-        <Feature
-          icon={CalendarDaysIcon}
-          title="Calendar view"
-          description="Plan, track, and review your routine over the month at a glance."
-        />
-        <Feature
-          icon={ScaleIcon}
-          title="Weigh-ins & goals"
-          description="Log your weight, set targets, and track progress over time."
-        />
-        <Feature
-          icon={SparklesIcon}
-          title="AI plan builder"
-          description="Generate a structured training + nutrition framework using Cloud Functions (your data stays protected)."
-        />
-      </section>
 
-      <section className="p-8 bg-white border border-gray-200 shadow-sm rounded-2xl">
-        <h2 className="text-2xl font-bold text-gray-900">About SageSet</h2>
-        <p className="mt-3 text-sm leading-relaxed text-gray-700">
-          SageSet Fitness is a personal planning tool, not medical advice. Always consult your physician before
-          beginning any new exercise program.
-        </p>
-        <p className="mt-3 text-sm leading-relaxed text-gray-700">
-          For support, contact{' '}
-          <a className="font-semibold text-green-700 hover:text-green-800" href="mailto:support@worksidesoftware.com">
-            support@worksidesoftware.com
-          </a>
-          .
-        </p>
-        <p className="mt-3 text-sm leading-relaxed text-gray-700">
-          Domain: <span className="font-semibold">sagesetfitness.com</span>
-        </p>
-      </section>
-
-      <section className="p-6 bg-white border border-gray-200 shadow-sm rounded-2xl">
-        <h2 className="text-lg font-semibold text-gray-900">Links</h2>
-        <div className="flex flex-wrap mt-3 text-sm font-medium gap-x-4 gap-y-2">
-          <Link className="text-green-700 hover:text-green-800" to="/support">
-            Support
-          </Link>
-          <Link className="text-green-700 hover:text-green-800" to="/privacy">
-            Privacy Policy
-          </Link>
-          <Link className="text-green-700 hover:text-green-800" to="/terms">
-            Terms of Service
-          </Link>
+      {/* App Preview / Video Section */}
+      <section className="py-8 bg-white">
+        <div className="px-6 mx-auto max-w-content">
+          <div className="max-w-2xl mx-auto mb-8 text-center">
+            <h2 className="text-3xl font-bold text-gray-900">See it in action</h2>
+            <p className="mt-4 text-lg text-gray-600">
+              A quick look at how SageSet helps you plan and track your workouts.
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <div className="w-full max-w-2xl">
+              <video
+                controls
+                poster="/Sage Set Poster.png"
+                className="w-full shadow-lg rounded-2xl"
+              >
+                <source src="/Sage Set Fitness.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Simple CTA */}
+      <section className="py-10 bg-sage-50">
+        <div className="px-6 mx-auto text-center max-w-content">
+          <h2 className="text-2xl font-semibold text-gray-900">Ready to get started?</h2>
+          <p className="mt-3 text-gray-600">
+            Questions? Reach out at{' '}
+            <a href="mailto:support@worksidesoftware.com" className="font-medium text-sage-700 hover:text-sage-800">
+              support@worksidesoftware.com
+            </a>
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ValueCard({ icon: Icon, title, description }) {
+  return (
+    <div className="text-center lg:text-left">
+      <div className="inline-flex items-center justify-center w-12 h-12 mb-5 rounded-xl bg-sage-100">
+        <Icon className="w-6 h-6 text-sage-700" />
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
+      <p className="mt-3 leading-relaxed text-gray-600">{description}</p>
     </div>
   );
 }

@@ -3,29 +3,30 @@ import { COPYRIGHT_NOTICE } from '../constants/appInfo';
 
 const navLinkClass = ({ isActive }) =>
   [
-    'text-sm font-medium',
-    isActive ? 'text-green-700' : 'text-gray-700 hover:text-green-700',
+    'text-sm font-medium transition-colors',
+    isActive ? 'text-sage-700' : 'text-gray-600 hover:text-sage-700',
   ].join(' ');
 
 export default function Layout({ children }) {
   return (
-    <div className="min-h-screen font-sans antialiased text-gray-900 bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between max-w-6xl px-4 py-4 mx-auto sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col font-sans antialiased text-gray-800 bg-white">
+      {/* Sticky, minimal navigation */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+        <div className="max-w-content mx-auto px-6 py-4 flex items-center justify-between">
           <NavLink to="/" className="flex items-center gap-3">
             <img
               src="/favicon.png"
               alt="SageSet"
-              className="rounded-lg h-9 w-9"
+              className="h-8 w-8 rounded-lg"
               loading="eager"
             />
-            <div>
-              <div className="text-lg font-bold tracking-tight">SageSet Fitness</div>
-              <div className="text-xs font-medium text-gray-600">Personal-first fitness planning</div>
-            </div>
+            <span className="text-lg font-semibold tracking-tight text-gray-900">SageSet</span>
           </NavLink>
 
-          <nav className="flex items-center gap-5">
+          <nav className="flex items-center gap-6">
+            <NavLink to="/" className={navLinkClass}>
+              Home
+            </NavLink>
             <NavLink to="/privacy" className={navLinkClass}>
               Privacy
             </NavLink>
@@ -39,24 +40,27 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <main className="w-full max-w-6xl px-4 py-10 mx-auto sm:px-6 lg:px-8">{children}</main>
+      {/* Main content */}
+      <main className="flex-1">{children}</main>
 
-      <footer className="bg-white border-t border-gray-200">
-        <div className="flex flex-col max-w-6xl gap-3 px-4 py-6 mx-auto text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <div>{COPYRIGHT_NOTICE}</div>
-          <div className="flex gap-4">
-            <NavLink to="/support" className="hover:text-green-700">
+      {/* Minimal footer */}
+      <footer className="border-t border-gray-100 bg-gray-50">
+        <div className="max-w-content mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-700">SageSet</span>
+            <span className="text-gray-300">•</span>
+            <span>{COPYRIGHT_NOTICE}</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <NavLink to="/privacy" className="hover:text-sage-700 transition-colors">
+              Privacy
+            </NavLink>
+            <NavLink to="/terms" className="hover:text-sage-700 transition-colors">
+              Terms
+            </NavLink>
+            <NavLink to="/support" className="hover:text-sage-700 transition-colors">
               Support
             </NavLink>
-            <NavLink to="/privacy" className="hover:text-green-700">
-              Privacy Policy
-            </NavLink>
-            <NavLink to="/terms" className="hover:text-green-700">
-              Terms of Use
-            </NavLink>
-            <a className="hover:text-green-700" href="mailto:support@worksidesoftware.com">
-              support@worksidesoftware.com
-            </a>
           </div>
         </div>
       </footer>
