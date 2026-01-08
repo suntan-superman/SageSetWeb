@@ -98,7 +98,19 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
+      <section className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm overflow-hidden">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">See SageSet in Action</h2>
+        <div className="flex justify-center">
+          <video
+            controls
+            poster="/Sage Set Poster.png"
+            className="w-1/2 rounded-xl"
+          >
+            <source src="/Sage Set Fitness.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </section>
       <section className="grid gap-4 md:grid-cols-2">
         <Feature
           icon={CheckCircleIcon}
