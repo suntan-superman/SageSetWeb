@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import SupportPage from './pages/SupportPage.jsx';
+import AccountDeletionPage from './pages/AccountDeletionPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/privacy" element={<Layout><PrivacyPolicyPage /></Layout>} />
         <Route path="/terms" element={<Layout><TermsOfServicePage /></Layout>} />
         <Route path="/support" element={<Layout><SupportPage /></Layout>} />
+        <Route path="/account-deletion" element={<Layout><AccountDeletionPage /></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
