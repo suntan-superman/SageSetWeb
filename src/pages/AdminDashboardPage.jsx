@@ -19,12 +19,12 @@ import {
   ClockIcon,
   ExclamationTriangleIcon,
   XMarkIcon,
-  ArrowRightOnRectangleIcon,
   ChatBubbleLeftEllipsisIcon,
   PlusIcon,
   FunnelIcon,
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolidIcon } from '@heroicons/react/24/solid';
+import AdminHeader from '../components/AdminHeader.jsx';
 
 const STATUS_CONFIG = {
   new: { 
@@ -172,27 +172,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-emerald-400">SageSet</h1>
-              <span className="text-gray-400">Admin Dashboard</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-400 text-sm">{user?.email}</span>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-              >
-                <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AdminHeader userEmail={user?.email} onLogout={handleLogout} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}

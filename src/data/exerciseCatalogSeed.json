@@ -1,0 +1,589 @@
+[
+  {
+    "name": "Tricep Dips",
+    "primaryMuscle": "Triceps",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Push",
+    "aiTags": [
+      "upper_body",
+      "push",
+      "triceps"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Dumbbell Bench Press",
+    "primaryMuscle": "Chest",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Dumbbell"
+    ],
+    "movementPattern": "Push",
+    "aiTags": [
+      "chest",
+      "horizontal_push"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Overhead Dumbbell Press",
+    "primaryMuscle": "Shoulders",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Dumbbell"
+    ],
+    "movementPattern": "Push",
+    "aiTags": [
+      "shoulders",
+      "vertical_push"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Push-ups",
+    "primaryMuscle": "Chest",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Push",
+    "aiTags": [
+      "bodyweight",
+      "chest",
+      "push"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Bicep Curls",
+    "primaryMuscle": "Biceps",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Dumbbell"
+    ],
+    "movementPattern": "Pull",
+    "aiTags": [
+      "biceps",
+      "isolation"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Hammer Curls",
+    "primaryMuscle": "Biceps",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Dumbbell"
+    ],
+    "movementPattern": "Pull",
+    "aiTags": [
+      "biceps",
+      "forearms"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Dumbbell Rows",
+    "primaryMuscle": "Back",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Dumbbell"
+    ],
+    "movementPattern": "Pull",
+    "aiTags": [
+      "back",
+      "horizontal_pull"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Pull-Ups",
+    "primaryMuscle": "Back",
+    "difficulty": "Advanced",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Pull",
+    "aiTags": [
+      "back",
+      "vertical_pull"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Lateral Raises",
+    "primaryMuscle": "Shoulders",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Dumbbell"
+    ],
+    "movementPattern": "Isolation",
+    "aiTags": [
+      "shoulders",
+      "lateral"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Front Raises",
+    "primaryMuscle": "Shoulders",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Dumbbell"
+    ],
+    "movementPattern": "Isolation",
+    "aiTags": [
+      "shoulders",
+      "anterior"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Tricep Pushdowns",
+    "primaryMuscle": "Triceps",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Machine"
+    ],
+    "movementPattern": "Push",
+    "aiTags": [
+      "triceps",
+      "isolation"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Chest Fly",
+    "primaryMuscle": "Chest",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Dumbbell",
+      "Machine"
+    ],
+    "movementPattern": "Isolation",
+    "aiTags": [
+      "chest",
+      "isolation"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Face Pulls",
+    "primaryMuscle": "Shoulders",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Cable"
+    ],
+    "movementPattern": "Pull",
+    "aiTags": [
+      "rear_delts"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Lat Pulldown",
+    "primaryMuscle": "Back",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Machine"
+    ],
+    "movementPattern": "Pull",
+    "aiTags": [
+      "back",
+      "vertical_pull"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Seated Cable Row",
+    "primaryMuscle": "Back",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Machine"
+    ],
+    "movementPattern": "Pull",
+    "aiTags": [
+      "back",
+      "horizontal_pull"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Squats",
+    "primaryMuscle": "Quadriceps",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Bodyweight",
+      "Barbell"
+    ],
+    "movementPattern": "Squat",
+    "aiTags": [
+      "lower_body",
+      "compound"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Calf Raises",
+    "primaryMuscle": "Calves",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Bodyweight",
+      "Machine"
+    ],
+    "movementPattern": "Isolation",
+    "aiTags": [
+      "calves"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Dumbbell Lunges",
+    "primaryMuscle": "Quadriceps",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Dumbbell"
+    ],
+    "movementPattern": "Lunge",
+    "aiTags": [
+      "unilateral"
+    ],
+    "isUnilateral": true,
+    "isCompound": true
+  },
+  {
+    "name": "Glute Bridge",
+    "primaryMuscle": "Glutes",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Hinge",
+    "aiTags": [
+      "posterior_chain"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Leg Press",
+    "primaryMuscle": "Quadriceps",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Machine"
+    ],
+    "movementPattern": "Squat",
+    "aiTags": [
+      "machine",
+      "compound"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Leg Extensions",
+    "primaryMuscle": "Quadriceps",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Machine"
+    ],
+    "movementPattern": "Isolation",
+    "aiTags": [
+      "quads"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Hamstring Curls",
+    "primaryMuscle": "Hamstrings",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Machine"
+    ],
+    "movementPattern": "Isolation",
+    "aiTags": [
+      "hamstrings"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Romanian Deadlift",
+    "primaryMuscle": "Hamstrings",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Barbell",
+      "Dumbbell"
+    ],
+    "movementPattern": "Hinge",
+    "aiTags": [
+      "posterior_chain"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Step-Ups",
+    "primaryMuscle": "Quadriceps",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Bodyweight",
+      "Dumbbell"
+    ],
+    "movementPattern": "Lunge",
+    "aiTags": [
+      "unilateral"
+    ],
+    "isUnilateral": true,
+    "isCompound": true
+  },
+  {
+    "name": "Hip Thrust",
+    "primaryMuscle": "Glutes",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Barbell"
+    ],
+    "movementPattern": "Hinge",
+    "aiTags": [
+      "glutes",
+      "power"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Bulgarian Split Squat",
+    "primaryMuscle": "Quadriceps",
+    "difficulty": "Advanced",
+    "equipment": [
+      "Dumbbell",
+      "Barbell"
+    ],
+    "movementPattern": "Lunge",
+    "aiTags": [
+      "unilateral",
+      "balance"
+    ],
+    "isUnilateral": true,
+    "isCompound": true
+  },
+  {
+    "name": "Sumo Squat",
+    "primaryMuscle": "Glutes",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Barbell",
+      "Dumbbell"
+    ],
+    "movementPattern": "Squat",
+    "aiTags": [
+      "glutes",
+      "compound"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Plank",
+    "primaryMuscle": "Core",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Stability",
+    "aiTags": [
+      "core",
+      "isometric"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Side Plank",
+    "primaryMuscle": "Core",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Stability",
+    "aiTags": [
+      "core",
+      "obliques"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Russian Twists",
+    "primaryMuscle": "Core",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Bodyweight",
+      "Medicine Ball"
+    ],
+    "movementPattern": "Rotation",
+    "aiTags": [
+      "core",
+      "rotation"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Bicycle Crunch",
+    "primaryMuscle": "Core",
+    "difficulty": "Beginner",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Flexion",
+    "aiTags": [
+      "core",
+      "dynamic"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Hanging Leg Raises",
+    "primaryMuscle": "Core",
+    "difficulty": "Advanced",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Flexion",
+    "aiTags": [
+      "core",
+      "advanced"
+    ],
+    "isUnilateral": false,
+    "isCompound": false
+  },
+  {
+    "name": "Mountain Climbers",
+    "primaryMuscle": "Core",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Dynamic",
+    "aiTags": [
+      "cardio",
+      "core"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Deadlift",
+    "primaryMuscle": "Back",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Barbell"
+    ],
+    "movementPattern": "Hinge",
+    "aiTags": [
+      "posterior_chain",
+      "compound"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Kettlebell Swings",
+    "primaryMuscle": "Glutes",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Kettlebell"
+    ],
+    "movementPattern": "Hinge",
+    "aiTags": [
+      "power",
+      "posterior_chain"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Burpees",
+    "primaryMuscle": "Quadriceps",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Bodyweight"
+    ],
+    "movementPattern": "Full Body",
+    "aiTags": [
+      "conditioning"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Thrusters",
+    "primaryMuscle": "Shoulders",
+    "difficulty": "Advanced",
+    "equipment": [
+      "Barbell",
+      "Dumbbell"
+    ],
+    "movementPattern": "Squat + Push",
+    "aiTags": [
+      "compound",
+      "power"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Farmer's Carry",
+    "primaryMuscle": "Core",
+    "difficulty": "Intermediate",
+    "equipment": [
+      "Dumbbell",
+      "Kettlebell"
+    ],
+    "movementPattern": "Carry",
+    "aiTags": [
+      "stability"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  },
+  {
+    "name": "Clean and Press",
+    "primaryMuscle": "Shoulders",
+    "difficulty": "Advanced",
+    "equipment": [
+      "Barbell"
+    ],
+    "movementPattern": "Pull + Push",
+    "aiTags": [
+      "olympic",
+      "power"
+    ],
+    "isUnilateral": false,
+    "isCompound": true
+  }
+]
