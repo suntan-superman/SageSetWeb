@@ -325,7 +325,7 @@ export default function AdminUsersPage() {
       setSelectedDetail(detail);
       setExpandedPlans(buildDefaultExpandedPlans(detail));
     } catch (error) {
-      console.error('Failed to load user detail:', error);
+      console.warn('Failed to load user detail:', error);
       setDetailError(error?.message || 'Failed to load user detail.');
     } finally {
       setDetailLoading(false);
@@ -353,7 +353,7 @@ export default function AdminUsersPage() {
         setSelectedDetail(null);
       }
     } catch (error) {
-      console.error('Failed to load admin users:', error);
+      console.warn('Failed to load admin users:', error);
       setUsersError(error?.message || 'Failed to load users.');
     } finally {
       setUsersLoading(false);
@@ -396,7 +396,7 @@ export default function AdminUsersPage() {
         setNotificationBody('');
       }
     } catch (error) {
-      console.error('Failed to send admin push notification:', error);
+      console.warn('Failed to send admin push notification:', error);
       setActionError(error?.message || 'Failed to send notification.');
     } finally {
       setSendingNotification(false);

@@ -17,8 +17,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Get ID token to check for admin claim
-        const tokenResult = await user.getIdTokenResult();
+        // Force a fresh token on admin portal bootstrap so callable functions
+        // and route guards agree on the latest custom claims.
+        const tokenResult = await user.getIdTokenResult(true);
         const adminClaim = tokenResult.claims.admin === true;
         setIsAdmin(adminClaim);
         setUser(user);
@@ -34,7 +35,7 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const tokenResult = await userCredential.user.getIdTokenResult();
+    const tokenResult = await userCredential.user.getIdTokenResult(true);
     const adminClaim = tokenResult.claims.admin === true;
     
     if (!adminClaim) {

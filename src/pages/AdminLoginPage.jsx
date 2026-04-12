@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
       await login(email, password);
       navigate('/admin/users');
     } catch (err) {
-      console.error('Login error:', err);
+      console.warn('Login error:', err);
       if (err.message.includes('Admin privileges')) {
         setError('Access denied. Admin privileges required.');
       } else if (err.code === 'auth/invalid-credential') {
@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
       await resetPassword(email);
       setResetSent(true);
     } catch (err) {
-      console.error('Password reset error:', err);
+      console.warn('Password reset error:', err);
       if (err.code === 'auth/user-not-found') {
         setError('No account found with this email.');
       } else {
@@ -98,6 +98,7 @@ export default function AdminLoginPage() {
                       <input
                         id="reset-email"
                         type="email"
+                        autoComplete="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -143,6 +144,7 @@ export default function AdminLoginPage() {
                   <input
                     id="email"
                     type="email"
+                    autoComplete="username"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -159,6 +161,7 @@ export default function AdminLoginPage() {
                   <input
                     id="password"
                     type="password"
+                    autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
