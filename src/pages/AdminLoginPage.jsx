@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
 
     try {
       await login(email, password);
-      navigate('/admin/dashboard');
+      navigate('/admin/users');
     } catch (err) {
       console.error('Login error:', err);
       if (err.message.includes('Admin privileges')) {

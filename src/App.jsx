@@ -8,6 +8,7 @@ import AccountDeletionPage from './pages/AccountDeletionPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import AdminExercisesPage from './pages/AdminExercisesPage.jsx';
+import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Protected route component for admin pages
@@ -35,6 +36,14 @@ export default function App() {
       <Routes>
         {/* Admin routes - no Layout wrapper */}
         <Route path="/admin" element={<AdminLoginPage />} />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedAdminRoute>
+              <AdminUsersPage />
+            </ProtectedAdminRoute>
+          }
+        />
         <Route 
           path="/admin/dashboard" 
           element={

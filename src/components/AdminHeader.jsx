@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 const navItems = [
+  { to: '/admin/users', label: 'Users' },
   { to: '/admin/dashboard', label: 'Feedback' },
   { to: '/admin/exercises', label: 'Exercises' },
 ];
