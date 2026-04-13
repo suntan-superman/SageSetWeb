@@ -126,7 +126,7 @@ export default function PrivacyPolicyPage() {
             </ul>
             <p>
               To exercise these rights, contact us at{' '}
-              <a href="mailto:support@worksidesoftware.com">support@worksidesoftware.com</a>.
+              <a href="mailto:support@sagesetfitness.com">support@sagesetfitness.com</a>.
             </p>
           </Section>
 
@@ -147,7 +147,7 @@ export default function PrivacyPolicyPage() {
           <Section title="10. Contact Us">
             <p>
               If you have questions about this Privacy Policy, contact us at:{' '}
-              <a href="mailto:support@worksidesoftware.com">support@worksidesoftware.com</a>
+              <a href="mailto:support@sagesetfitness.com">support@sagesetfitness.com</a>
             </p>
           </Section>
         </div>

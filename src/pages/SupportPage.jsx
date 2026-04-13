@@ -57,10 +57,10 @@ export default function SupportPage() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Email Support</h2>
               <a 
-                href="mailto:support@worksidesoftware.com" 
+                href="mailto:support@sagesetfitness.com" 
                 className="mt-1 text-sage-700 hover:text-sage-800 font-medium text-lg"
               >
-                support@worksidesoftware.com
+                support@sagesetfitness.com
               </a>
               <p className="mt-2 text-gray-600">
                 We typically respond within 24 hours.

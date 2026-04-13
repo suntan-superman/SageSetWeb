@@ -160,7 +160,7 @@ export default function TermsOfServicePage() {
           <Section title="12. Contact Us">
             <p>
               If you have questions about these Terms, contact us at:{' '}
-              <a href="mailto:support@worksidesoftware.com">support@worksidesoftware.com</a>
+              <a href="mailto:support@sagesetfitness.com">support@sagesetfitness.com</a>
             </p>
           </Section>
         </div>

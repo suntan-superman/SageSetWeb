@@ -89,8 +89,8 @@ export default function HomePage() {
           <h2 className="text-2xl font-semibold text-gray-900">Ready to get started?</h2>
           <p className="mt-3 text-gray-600">
             Questions? Reach out at{' '}
-            <a href="mailto:support@worksidesoftware.com" className="font-medium text-sage-700 hover:text-sage-800">
-              support@worksidesoftware.com
+            <a href="mailto:support@sagesetfitness.com" className="font-medium text-sage-700 hover:text-sage-800">
+              support@sagesetfitness.com
             </a>
           </p>
         </div>
