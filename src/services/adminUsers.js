@@ -68,3 +68,12 @@ export async function sendUserExpoNotification({ uid, title, body, data = {} }) 
     data,
   });
 }
+
+export async function listNutritionUsageForAdmin(limit = 100) {
+  return (
+    (await callAdminFunction('listNutritionUsageForAdmin', { limit })) || {
+      users: [],
+      total: 0,
+    }
+  );
+}

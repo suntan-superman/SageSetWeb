@@ -5,6 +5,7 @@ const navItems = [
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/dashboard', label: 'Feedback' },
   { to: '/admin/exercises', label: 'Exercises' },
+  { to: '/admin/usage', label: 'Usage' },
 ];
 
 export default function AdminHeader({ userEmail, onLogout }) {
