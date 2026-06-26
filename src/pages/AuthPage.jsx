@@ -27,6 +27,10 @@ export default function AuthPage({ mode = 'login' }) {
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
 
+  const updatePhone = (event) => {
+    setForm((current) => ({ ...current, phone: formatPhoneNumber(event.target.value) }));
+  };
+
   const updateChecked = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.checked }));
   };
@@ -44,7 +48,7 @@ export default function AuthPage({ mode = 'login' }) {
           setBusy(false);
           return;
         }
-        if (!form.phone.trim()) {
+        if (getPhoneDigits(form.phone).length !== 10) {
           setError('Phone number is required.');
           setBusy(false);
           return;
@@ -112,8 +116,11 @@ export default function AuthPage({ mode = 'login' }) {
                 label="Mobile phone"
                 type="tel"
                 value={form.phone}
-                onChange={updateField('phone')}
+                onChange={updatePhone}
                 autoComplete="tel"
+                inputMode="tel"
+                placeholder="(555) 555-5555"
+                maxLength={14}
                 required
               />
             ) : null}
@@ -183,7 +190,29 @@ export default function AuthPage({ mode = 'login' }) {
   );
 }
 
-function Field({ label, type = 'text', value, onChange, required = false, autoComplete }) {
+function getPhoneDigits(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits.slice(0, 10);
+}
+
+function formatPhoneNumber(value) {
+  const digits = getPhoneDigits(value);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function Field({
+  label,
+  type = 'text',
+  value,
+  onChange,
+  required = false,
+  autoComplete,
+  inputMode,
+  placeholder,
+  maxLength,
+}) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-gray-200">{label}</span>
@@ -193,6 +222,9 @@ function Field({ label, type = 'text', value, onChange, required = false, autoCo
         onChange={onChange}
         required={required}
         autoComplete={autoComplete}
+        inputMode={inputMode}
+        placeholder={placeholder}
+        maxLength={maxLength}
         className="mt-2 w-full rounded-lg border border-white/10 bg-white px-4 py-3 text-gray-900 outline-none ring-sage-400 focus:ring-2"
       />
     </label>
