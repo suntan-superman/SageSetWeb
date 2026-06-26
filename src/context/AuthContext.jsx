@@ -198,6 +198,30 @@ export function AuthProvider({ children }) {
     await sendEmailVerification(auth.currentUser);
   };
 
+  const resendSmsVerification = async () => {
+    if (!auth.currentUser) {
+      throw new Error('No signed-in user.');
+    }
+    const phone = userData?.contact?.phone || userData?.phone || '';
+    if (!phone) {
+      throw new Error('No mobile phone number is on file.');
+    }
+    const sendSmsConfirmation = httpsCallable(functions, 'sendSmsConfirmation');
+    const result = await sendSmsConfirmation({ phone });
+    await refreshUserData();
+    return result.data;
+  };
+
+  const verifySmsCode = async (code) => {
+    if (!auth.currentUser) {
+      throw new Error('No signed-in user.');
+    }
+    const verifySmsConfirmation = httpsCallable(functions, 'verifySmsConfirmation');
+    const result = await verifySmsConfirmation({ code });
+    await refreshUserData();
+    return result.data;
+  };
+
   const logout = async () => {
     await signOut(auth);
     setUser(null);
@@ -222,6 +246,8 @@ export function AuthProvider({ children }) {
     refreshUserData,
     refreshAuthUser,
     resendVerificationEmail,
+    resendSmsVerification,
+    verifySmsCode,
   };
 
   return (

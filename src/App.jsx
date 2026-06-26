@@ -6,6 +6,7 @@ import SimpleInfoPage from './pages/SimpleInfoPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
+import VerifySmsPage from './pages/VerifySmsPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import SupportPage from './pages/SupportPage.jsx';
@@ -39,7 +40,7 @@ function ProtectedAdminRoute({ children }) {
 }
 
 function ProtectedMemberRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -56,6 +57,12 @@ function ProtectedMemberRoute({ children }) {
 
   if (!user.emailVerified && location.pathname !== '/verify-email') {
     return <Navigate to="/verify-email" replace />;
+  }
+
+  const contact = userData?.contact || {};
+  const needsSmsVerification = contact.smsOptIn === true && contact.smsVerificationStatus !== 'verified';
+  if (user.emailVerified && needsSmsVerification && location.pathname !== '/verify-sms') {
+    return <Navigate to="/verify-sms" replace />;
   }
 
   return children;
@@ -143,6 +150,7 @@ export default function App() {
         <Route path="/login" element={<Layout><AuthPage mode="login" /></Layout>} />
         <Route path="/signup" element={<Layout><AuthPage mode="signup" /></Layout>} />
         <Route path="/verify-email" element={<Layout><VerifyEmailPage /></Layout>} />
+        <Route path="/verify-sms" element={<Layout><VerifySmsPage /></Layout>} />
         <Route
           path="/dashboard"
           element={<Layout><ProtectedMemberRoute><DashboardPage section="overview" /></ProtectedMemberRoute></Layout>}
