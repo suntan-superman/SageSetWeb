@@ -23,18 +23,18 @@ export default function Layout({ children }) {
             <span className="text-lg font-semibold tracking-tight text-gray-900">SageSet</span>
           </NavLink>
 
-          <nav className="flex items-center gap-6">
-            <NavLink to="/" className={navLinkClass}>
-              Home
+          <nav className="hidden items-center gap-6 sm:flex">
+            <NavLink to="/features" className={navLinkClass}>
+              Features
             </NavLink>
-            <NavLink to="/privacy" className={navLinkClass}>
-              Privacy
+            <NavLink to="/nutrition" className={navLinkClass}>
+              Nutrition
             </NavLink>
-            <NavLink to="/terms" className={navLinkClass}>
-              Terms
+            <NavLink to="/pricing" className={navLinkClass}>
+              Pricing
             </NavLink>
-            <NavLink to="/support" className={navLinkClass}>
-              Support
+            <NavLink to="/download" className={navLinkClass}>
+              Download
             </NavLink>
           </nav>
         </div>
@@ -52,6 +52,9 @@ export default function Layout({ children }) {
             <span>{COPYRIGHT_NOTICE}</span>
           </div>
           <div className="flex items-center gap-6">
+            <NavLink to="/pricing" className="hover:text-sage-700 transition-colors">
+              Pricing
+            </NavLink>
             <NavLink to="/privacy" className="hover:text-sage-700 transition-colors">
               Privacy
             </NavLink>

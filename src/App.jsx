@@ -1,6 +1,8 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
 import HomePage from './pages/HomePage.jsx';
+import MarketingLandingPage from './pages/MarketingLandingPage.jsx';
+import SimpleInfoPage from './pages/SimpleInfoPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import SupportPage from './pages/SupportPage.jsx';
@@ -11,6 +13,8 @@ import AdminExercisesPage from './pages/AdminExercisesPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminUsagePage from './pages/AdminUsagePage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { initMetaPixel, trackPageView } from './services/metaPixel.js';
+import { useEffect } from 'react';
 
 // Protected route component for admin pages
 function ProtectedAdminRoute({ children }) {
@@ -31,9 +35,47 @@ function ProtectedAdminRoute({ children }) {
   return children;
 }
 
+function PixelRouteTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    initMetaPixel();
+  }, []);
+
+  useEffect(() => {
+    trackPageView();
+  }, [location.pathname, location.search]);
+
+  return null;
+}
+
+const marketingRoutes = [
+  '/fitness-ai-coach',
+  '/workout-plans',
+  '/weight-loss',
+  '/muscle-building',
+  '/nutrition',
+  '/fitness-challenges',
+  '/features',
+  '/pricing',
+  '/download',
+];
+
+const infoRoutes = [
+  '/testimonials',
+  '/before-after',
+  '/faq',
+  '/supported-devices',
+  '/blog',
+  '/billing/success',
+  '/billing/cancel',
+  '/account/billing',
+];
+
 export default function App() {
   return (
     <AuthProvider>
+      <PixelRouteTracker />
       <Routes>
         {/* Admin routes - no Layout wrapper */}
         <Route path="/admin" element={<AdminLoginPage />} />
@@ -72,9 +114,24 @@ export default function App() {
         
         {/* Public routes with Layout */}
         <Route path="/" element={<Layout><HomePage /></Layout>} />
+        {marketingRoutes.map((path) => (
+          <Route
+            key={path}
+            path={path}
+            element={<Layout><MarketingLandingPage path={path} /></Layout>}
+          />
+        ))}
+        {infoRoutes.map((path) => (
+          <Route
+            key={path}
+            path={path}
+            element={<Layout><SimpleInfoPage path={path} /></Layout>}
+          />
+        ))}
         <Route path="/privacy" element={<Layout><PrivacyPolicyPage /></Layout>} />
         <Route path="/terms" element={<Layout><TermsOfServicePage /></Layout>} />
         <Route path="/support" element={<Layout><SupportPage /></Layout>} />
+        <Route path="/contact" element={<Layout><SupportPage /></Layout>} />
         <Route path="/account-deletion" element={<Layout><AccountDeletionPage /></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

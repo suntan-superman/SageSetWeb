@@ -1,8 +1,17 @@
 import { CheckCircleIcon, CalendarDaysIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { trackCustomEvent, trackEvent } from '../services/metaPixel';
 
 const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
 
 export default function HomePage() {
+  const handleDownloadClick = () => {
+    trackCustomEvent('DownloadClicked', { source: 'home_hero' });
+  };
+
+  const handleVideoPlay = () => {
+    trackEvent('ViewContent', { content_name: 'SageSet demo video', content_category: 'video' });
+  };
+
   return (
     <div>
       {/* Hero Section */}
@@ -20,6 +29,7 @@ export default function HomePage() {
               {APP_STORE_URL ? (
                 <a
                   href={APP_STORE_URL}
+                  onClick={handleDownloadClick}
                   className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-colors bg-sage-700 rounded-xl hover:bg-sage-800"
                   target="_blank"
                   rel="noreferrer"
@@ -73,6 +83,7 @@ export default function HomePage() {
               <video
                 controls
                 poster="/Sage Set Poster.png"
+                onPlay={handleVideoPlay}
                 className="w-full shadow-lg rounded-2xl"
               >
                 <source src="/Sage Set Fitness.mp4" type="video/mp4" />
@@ -88,9 +99,11 @@ export default function HomePage() {
         <div className="px-6 mx-auto text-center max-w-content">
           <h2 className="text-2xl font-semibold text-gray-900">Ready to get started?</h2>
           <p className="mt-3 text-gray-600">
-            Questions? Reach out at{' '}
-            <a href="mailto:support@sagesetfitness.com" className="font-medium text-sage-700 hover:text-sage-800">
-              support@sagesetfitness.com
+            Start with the 14-day free trial, then continue for $9.99/month.
+          </p>
+          <p className="mt-4">
+            <a href="/pricing" className="font-semibold text-sage-700 hover:text-sage-800">
+              View pricing
             </a>
           </p>
         </div>
