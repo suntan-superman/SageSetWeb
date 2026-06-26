@@ -5,10 +5,12 @@ import {
   signInWithEmailAndPassword, 
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions } from '../config/firebase';
 
 const AuthContext = createContext(null);
 
@@ -65,7 +67,14 @@ export function AuthProvider({ children }) {
     return userCredential.user;
   };
 
-  const signup = async ({ email, password, firstName = '', lastName = '' }) => {
+  const signup = async ({ email, password, firstName = '', lastName = '', phone = '', smsOptIn = false }) => {
+    if (!phone.trim()) {
+      throw new Error('Phone number is required.');
+    }
+    if (smsOptIn !== true) {
+      throw new Error('SMS opt-in is required so SageSet can send account and status updates.');
+    }
+
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const displayName = `${firstName} ${lastName}`.trim() || null;
     const trialStartedAt = new Date();
@@ -81,9 +90,18 @@ export function AuthProvider({ children }) {
       firstName: firstName || null,
       lastName: lastName || null,
       displayName,
+      phone: phone.trim(),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       units: 'imperial',
+      contact: {
+        emailVerified: false,
+        phone: phone.trim(),
+        smsOptIn: true,
+        smsConsentAt: serverTimestamp(),
+        smsConsentSource: 'web_signup',
+        smsVerificationStatus: 'pending',
+      },
       trial: {
         startedAt: Timestamp.fromDate(trialStartedAt),
         endsAt: Timestamp.fromDate(trialEndsAt),
@@ -116,6 +134,7 @@ export function AuthProvider({ children }) {
         email: true,
         push: true,
         marketing: false,
+        sms: true,
         trialReminders: true,
       },
       metrics: {
@@ -131,6 +150,15 @@ export function AuthProvider({ children }) {
         arkitChallengesEnabled: false,
       },
     });
+
+    await sendEmailVerification(userCredential.user);
+
+    try {
+      const sendSmsConfirmation = httpsCallable(functions, 'sendSmsConfirmation');
+      await sendSmsConfirmation({ phone: phone.trim() });
+    } catch (smsError) {
+      console.warn('SMS confirmation could not be sent:', smsError);
+    }
 
     await loadUserData(userCredential.user.uid);
     return userCredential.user;

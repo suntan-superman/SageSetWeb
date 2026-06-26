@@ -8,7 +8,15 @@ export default function AuthPage({ mode = 'login' }) {
   const isSignup = mode === 'signup';
   const { login, signup, resetPassword } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '', confirmPassword: '', firstName: '', lastName: '' });
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    smsOptIn: false,
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -17,6 +25,10 @@ export default function AuthPage({ mode = 'login' }) {
 
   const updateField = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
+  };
+
+  const updateChecked = (field) => (event) => {
+    setForm((current) => ({ ...current, [field]: event.target.checked }));
   };
 
   const handleSubmit = async (event) => {
@@ -29,6 +41,16 @@ export default function AuthPage({ mode = 'login' }) {
       if (isSignup) {
         if (form.password !== form.confirmPassword) {
           setError('Passwords do not match.');
+          setBusy(false);
+          return;
+        }
+        if (!form.phone.trim()) {
+          setError('Phone number is required.');
+          setBusy(false);
+          return;
+        }
+        if (!form.smsOptIn) {
+          setError('Please opt in to SMS account and status updates to continue.');
           setBusy(false);
           return;
         }
@@ -85,6 +107,16 @@ export default function AuthPage({ mode = 'login' }) {
 
           <div className="mt-4 space-y-4">
             <Field label="Email" type="email" value={form.email} onChange={updateField('email')} autoComplete="email" required />
+            {isSignup ? (
+              <Field
+                label="Mobile phone"
+                type="tel"
+                value={form.phone}
+                onChange={updateField('phone')}
+                autoComplete="tel"
+                required
+              />
+            ) : null}
             <PasswordField
               label="Password"
               value={form.password}
@@ -106,6 +138,21 @@ export default function AuthPage({ mode = 'login' }) {
               />
             ) : null}
           </div>
+
+          {isSignup ? (
+            <label className="mt-4 flex gap-3 rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-gray-200">
+              <input
+                type="checkbox"
+                checked={form.smsOptIn}
+                onChange={updateChecked('smsOptIn')}
+                required
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-sage-600 focus:ring-sage-500"
+              />
+              <span>
+                I agree to receive SageSet SMS messages for account confirmation, trial reminders, subscription status, and service updates. Message and data rates may apply.
+              </span>
+            </label>
+          ) : null}
 
           {error ? <p className="mt-4 rounded-lg bg-red-500/20 px-4 py-3 text-sm text-red-100">{error}</p> : null}
           {message ? <p className="mt-4 rounded-lg bg-emerald-500/20 px-4 py-3 text-sm text-emerald-100">{message}</p> : null}
