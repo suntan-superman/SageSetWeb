@@ -1,6 +1,11 @@
 const PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || '';
 
 let initialized = false;
+let lastPageViewPath = '';
+
+export function isMetaPixelEnabled() {
+  return Boolean(PIXEL_ID);
+}
 
 export function initMetaPixel() {
   if (!PIXEL_ID || initialized || typeof window === 'undefined') return;
@@ -22,6 +27,9 @@ export function initMetaPixel() {
 
 export function trackPageView() {
   if (!PIXEL_ID || typeof window === 'undefined' || typeof window.fbq !== 'function') return;
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  if (currentPath === lastPageViewPath) return;
+  lastPageViewPath = currentPath;
   window.fbq('track', 'PageView');
 }
 

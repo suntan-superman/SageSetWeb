@@ -15,11 +15,18 @@ export async function refreshEntitlements() {
 }
 
 export async function startCheckout() {
+  trackEvent('InitiateCheckout', {
+    content_name: 'SageSet Premium',
+    content_category: 'subscription',
+    currency: 'USD',
+    value: 9.99,
+    num_items: 1,
+  });
   const fn = httpsCallable(functions, 'createCheckoutSession');
   const response = await fn({ returnPath: '/dashboard/billing' });
   const url = response?.data?.url;
   if (!url) throw new Error('Checkout URL was not returned.');
-  trackCustomEvent('TrialStarted', { source: 'dashboard_billing', value: 9.99, currency: 'USD' });
+  trackCustomEvent('CheckoutSessionCreated', { source: 'dashboard_billing', value: 9.99, currency: 'USD' });
   window.location.assign(url);
 }
 

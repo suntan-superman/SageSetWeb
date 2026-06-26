@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { trackCustomEvent, trackEvent } from '../services/metaPixel';
+
 const pageCopy = {
   '/testimonials': {
     title: 'Member stories',
@@ -38,6 +41,22 @@ export default function SimpleInfoPage({ path }) {
     title: 'SageSet',
     body: 'A focused fitness app for plans, workouts, nutrition, and consistency.',
   };
+
+  useEffect(() => {
+    if (path === '/billing/success') {
+      trackEvent('Subscribe', {
+        content_name: 'SageSet Premium',
+        content_category: 'subscription',
+        currency: 'USD',
+        value: 9.99,
+      });
+      trackCustomEvent('TrialStarted', { source: 'stripe_success', value: 9.99, currency: 'USD' });
+    }
+
+    if (path === '/billing/cancel') {
+      trackCustomEvent('CheckoutCancelled', { source: 'stripe_cancel' });
+    }
+  }, [path]);
 
   return (
     <section className="bg-white py-16">

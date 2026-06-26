@@ -14,3 +14,21 @@ admin@sagesetfitness.com
 P55
 /////////////////////////////////////////////////////
 
+## Meta Pixel
+
+Set the public Pixel ID in `web/.env`:
+
+```env
+VITE_META_PIXEL_ID=your_meta_pixel_id
+```
+
+Tracked browser events:
+
+- `PageView` on route changes
+- `ViewContent` on signup and marketing content
+- `Lead` on signup intent
+- `CompleteRegistration` after successful web signup
+- `InitiateCheckout` when the Stripe checkout flow starts
+- `Subscribe` and custom `TrialStarted` on `/billing/success`
+- custom `CheckoutCancelled`, `CheckoutSessionCreated`, and `DownloadClicked`
+

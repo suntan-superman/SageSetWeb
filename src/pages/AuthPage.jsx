@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { trackEvent } from '../services/metaPixel';
@@ -22,6 +22,15 @@ export default function AuthPage({ mode = 'login' }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isSignup) {
+      trackEvent('ViewContent', {
+        content_name: 'SageSet signup',
+        content_category: 'signup',
+      });
+    }
+  }, [isSignup]);
 
   const updateField = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -58,6 +67,7 @@ export default function AuthPage({ mode = 'login' }) {
           setBusy(false);
           return;
         }
+        trackEvent('Lead', { content_name: 'web_signup_submit', content_category: 'signup' });
         await signup(form);
         trackEvent('CompleteRegistration', { method: 'email' });
         navigate('/verify-email');
