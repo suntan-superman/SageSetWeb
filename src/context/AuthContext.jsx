@@ -7,9 +7,8 @@ import {
   sendPasswordResetEmail,
   updateProfile,
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { auth, db, functions } from '../config/firebase';
+import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 
 const AuthContext = createContext(null);
 
@@ -69,6 +68,10 @@ export function AuthProvider({ children }) {
   const signup = async ({ email, password, firstName = '', lastName = '' }) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const displayName = `${firstName} ${lastName}`.trim() || null;
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date(trialStartedAt);
+    trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + 14);
+
     if (displayName) {
       await updateProfile(userCredential.user, { displayName });
     }
@@ -82,8 +85,8 @@ export function AuthProvider({ children }) {
       updatedAt: serverTimestamp(),
       units: 'imperial',
       trial: {
-        startedAt: null,
-        endsAt: null,
+        startedAt: Timestamp.fromDate(trialStartedAt),
+        endsAt: Timestamp.fromDate(trialEndsAt),
         status: 'active',
         source: 'account_creation',
         dayNumber: 1,
@@ -129,8 +132,6 @@ export function AuthProvider({ children }) {
       },
     });
 
-    const initializeTrial = httpsCallable(functions, 'initializeUserTrial');
-    await initializeTrial({});
     await loadUserData(userCredential.user.uid);
     return userCredential.user;
   };

@@ -78,19 +78,20 @@ export default function AuthPage({ mode = 'login' }) {
         <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur">
           {isSignup ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="First name" value={form.firstName} onChange={updateField('firstName')} />
-              <Field label="Last name" value={form.lastName} onChange={updateField('lastName')} />
+              <Field label="First name" value={form.firstName} onChange={updateField('firstName')} autoComplete="given-name" />
+              <Field label="Last name" value={form.lastName} onChange={updateField('lastName')} autoComplete="family-name" />
             </div>
           ) : null}
 
           <div className="mt-4 space-y-4">
-            <Field label="Email" type="email" value={form.email} onChange={updateField('email')} required />
+            <Field label="Email" type="email" value={form.email} onChange={updateField('email')} autoComplete="email" required />
             <PasswordField
               label="Password"
               value={form.password}
               onChange={updateField('password')}
               visible={showPassword}
               onToggle={() => setShowPassword((value) => !value)}
+              autoComplete={isSignup ? 'new-password' : 'current-password'}
               required
             />
             {isSignup ? (
@@ -100,6 +101,7 @@ export default function AuthPage({ mode = 'login' }) {
                 onChange={updateField('confirmPassword')}
                 visible={showConfirmPassword}
                 onToggle={() => setShowConfirmPassword((value) => !value)}
+                autoComplete="new-password"
                 required
               />
             ) : null}
@@ -134,7 +136,7 @@ export default function AuthPage({ mode = 'login' }) {
   );
 }
 
-function Field({ label, type = 'text', value, onChange, required = false }) {
+function Field({ label, type = 'text', value, onChange, required = false, autoComplete }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-gray-200">{label}</span>
@@ -143,13 +145,14 @@ function Field({ label, type = 'text', value, onChange, required = false }) {
         value={value}
         onChange={onChange}
         required={required}
+        autoComplete={autoComplete}
         className="mt-2 w-full rounded-lg border border-white/10 bg-white px-4 py-3 text-gray-900 outline-none ring-sage-400 focus:ring-2"
       />
     </label>
   );
 }
 
-function PasswordField({ label, value, onChange, visible, onToggle, required = false }) {
+function PasswordField({ label, value, onChange, visible, onToggle, required = false, autoComplete }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-gray-200">{label}</span>
@@ -159,6 +162,7 @@ function PasswordField({ label, value, onChange, visible, onToggle, required = f
           value={value}
           onChange={onChange}
           required={required}
+          autoComplete={autoComplete}
           className="w-full rounded-lg border border-white/10 bg-white px-4 py-3 pr-12 text-gray-900 outline-none ring-sage-400 focus:ring-2"
         />
         <button
