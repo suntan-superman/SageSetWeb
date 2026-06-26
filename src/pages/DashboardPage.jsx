@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   ArrowPathIcon,
@@ -57,19 +57,24 @@ export default function DashboardPage({ section = 'overview' }) {
     setBusy(true);
     setError('');
     try {
-      const [billingStatus] = await Promise.all([loadBillingStatus(), refreshUserData?.()]);
-      setBilling(billingStatus);
+      const profile = await refreshUserData?.();
+      let billingStatus = null;
+      try {
+        billingStatus = await loadBillingStatus();
+      } catch (billingError) {
+        console.warn('Billing status refresh failed:', billingError);
+      }
+      if (billingStatus) {
+        setBilling(billingStatus);
+      } else if (profile) {
+        setBilling(profile);
+      }
     } catch (err) {
       setError(err?.message || 'Unable to refresh dashboard.');
     } finally {
       setBusy(false);
     }
   };
-
-  useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleRefreshEntitlements = async () => {
     setBusy(true);
@@ -78,7 +83,9 @@ export default function DashboardPage({ section = 'overview' }) {
       await refreshEntitlements();
       await refresh();
     } catch (err) {
-      setError(err?.message || 'Unable to refresh subscription status.');
+      console.warn('Entitlement refresh failed:', err);
+      await refreshUserData?.();
+      setError('Account data refreshed. Billing status will sync after the billing service is available.');
     } finally {
       setBusy(false);
     }
