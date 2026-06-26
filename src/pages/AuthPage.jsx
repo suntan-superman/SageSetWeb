@@ -101,6 +101,20 @@ export default function AuthPage({ mode = 'login' }) {
           <p className="mt-5 text-lg leading-8 text-gray-300">
             Manage your trial, subscription, workouts, nutrition, and progress from the web dashboard.
           </p>
+          <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold text-sage-100">
+            {isSignup ? (
+              <>
+                <Badge>14-Day Free Trial</Badge>
+                <Badge>No credit card required</Badge>
+                <Badge>Takes less than 60 seconds</Badge>
+              </>
+            ) : (
+              <>
+                <Badge>Secure Login</Badge>
+                <Badge>Powered by Firebase Authentication</Badge>
+              </>
+            )}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur">
@@ -163,6 +177,16 @@ export default function AuthPage({ mode = 'login' }) {
             </label>
           ) : null}
 
+          {isSignup ? (
+            <div className="mt-4 rounded-lg border border-sage-300/20 bg-sage-300/10 px-4 py-3 text-sm text-sage-100">
+              14-day free trial. No credit card required. Account setup takes less than 60 seconds.
+            </div>
+          ) : (
+            <div className="mt-4 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200">
+              Secure login powered by Firebase Authentication.
+            </div>
+          )}
+
           {error ? <p className="mt-4 rounded-lg bg-red-500/20 px-4 py-3 text-sm text-red-100">{error}</p> : null}
           {message ? <p className="mt-4 rounded-lg bg-emerald-500/20 px-4 py-3 text-sm text-emerald-100">{message}</p> : null}
 
@@ -189,6 +213,14 @@ export default function AuthPage({ mode = 'login' }) {
         </form>
       </div>
     </section>
+  );
+}
+
+function Badge({ children }) {
+  return (
+    <span className="rounded-full border border-sage-300/20 bg-sage-300/10 px-3 py-1">
+      {children}
+    </span>
   );
 }
 

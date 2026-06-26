@@ -39,9 +39,15 @@ export default function DashboardPage({ section = 'overview' }) {
   const subscription = data.subscription || userData?.subscription || {};
   const entitlements = data.entitlements || userData?.entitlements || {};
   const metrics = data.metrics || userData?.metrics || {};
+  const goal = userData?.goal || {};
   const daysRemaining = getDaysRemaining(trial.endsAt);
   const hasAccess = entitlements.premium === true || subscription.status === 'active' || trial.status === 'active';
   const checkoutResult = new URLSearchParams(location.search).get('checkout');
+  const displayName = userData?.firstName || userData?.displayName?.split(' ')?.[0] || user?.displayName?.split(' ')?.[0] || 'there';
+  const trialDay = Math.max(1, Number(trial.dayNumber || 1));
+  const startWeight = Number(goal.startWeight || 0);
+  const targetWeight = Number(goal.targetWeight || 0);
+  const weightRemaining = startWeight && targetWeight ? Math.abs(startWeight - targetWeight).toFixed(1) : null;
 
   const cards = useMemo(
     () => [
@@ -49,8 +55,13 @@ export default function DashboardPage({ section = 'overview' }) {
       { label: 'Workouts completed', value: metrics.workoutsCompleted || 0, icon: HeartIcon },
       { label: 'Meals logged', value: metrics.mealsLogged || 0, icon: ChartBarIcon },
       { label: 'Current streak', value: metrics.streakDays || 0, icon: FireIcon },
+      {
+        label: targetWeight ? 'Goal weight' : 'Current weight',
+        value: targetWeight ? `${targetWeight} lbs` : startWeight ? `${startWeight} lbs` : 'Set goal',
+        icon: ChartBarIcon,
+      },
     ],
-    [daysRemaining, metrics.mealsLogged, metrics.streakDays, metrics.workoutsCompleted]
+    [daysRemaining, metrics.mealsLogged, metrics.streakDays, metrics.workoutsCompleted, startWeight, targetWeight]
   );
 
   const refresh = async () => {
@@ -120,8 +131,9 @@ export default function DashboardPage({ section = 'overview' }) {
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-sage-700">Member dashboard</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
-              {userData?.displayName || user?.displayName || user?.email || 'SageSet member'}
+              Good morning, {displayName}.
             </h1>
+            <p className="mt-2 text-gray-600">You're on Day {trialDay} of your SageSet fitness journey.</p>
           </div>
           <button
             type="button"
@@ -171,31 +183,57 @@ export default function DashboardPage({ section = 'overview' }) {
         ) : section === 'nutrition' ? (
           <InfoPanel icon={ChartBarIcon} title="Nutrition" body="Nutrition analysis is available during trial and premium access, subject to abuse-prevention limits." />
         ) : (
-          <Overview cards={cards} trial={trial} subscription={subscription} hasAccess={hasAccess} />
+          <Overview
+            cards={cards}
+            trial={trial}
+            subscription={subscription}
+            hasAccess={hasAccess}
+            displayName={displayName}
+            daysRemaining={daysRemaining}
+            streakDays={metrics.streakDays || 0}
+            weightRemaining={weightRemaining}
+          />
         )}
       </div>
     </section>
   );
 }
 
-function Overview({ cards, trial, subscription, hasAccess }) {
+function Overview({ cards, trial, subscription, hasAccess, displayName, daysRemaining, streakDays, weightRemaining }) {
   return (
     <div className="mt-6 space-y-6">
-      <div className="rounded-2xl border border-gray-200 bg-white p-6">
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+      <div className="rounded-2xl border border-sage-200 bg-white p-6 shadow-sm">
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{hasAccess ? 'Your access is active.' : 'Your trial has ended.'}</h2>
+            <p className="text-sm font-semibold uppercase tracking-wide text-sage-700">Coach recommendation</p>
+            <h2 className="mt-2 text-2xl font-bold text-gray-900">
+              {hasAccess ? `Let's build something great, ${displayName}.` : 'Your trial has ended.'}
+            </h2>
             <p className="mt-2 text-gray-600">
-              Trial ends {formatDate(trial.endsAt)}. Subscription status: {subscription.status || 'none'}.
+              {hasAccess
+                ? "Today's focus: open your mobile app, complete the planned workout, and log one meal so SageSet can keep learning your rhythm."
+                : 'Refresh billing status or manage billing to continue your plan.'}
             </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <CoachStat label="Trial" value={`${daysRemaining ?? 0} days remain`} />
+              <CoachStat label="Current streak" value={`${streakDays} days`} />
+              <CoachStat label="Weight goal" value={weightRemaining ? `${weightRemaining} lbs remaining` : 'Set in account'} />
+            </div>
           </div>
-          <Link to="/dashboard/billing" className="rounded-lg bg-sage-700 px-5 py-3 text-center font-semibold text-white hover:bg-sage-800">
-            Manage billing
-          </Link>
+          <div className="rounded-xl bg-gray-950 p-5 text-white">
+            <p className="text-sm font-semibold text-sage-300">Sage says</p>
+            <p className="mt-3 text-lg font-bold">
+              {hasAccess ? "You're one completed session away from stronger momentum." : 'Your progress is saved and ready when access is active.'}
+            </p>
+            <p className="mt-3 text-sm text-gray-300">Trial ends {formatDate(trial.endsAt)}. Subscription status: {subscription.status || 'none'}.</p>
+            <Link to="/dashboard/billing" className="mt-5 inline-flex rounded-lg bg-sage-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sage-600">
+              Manage billing
+            </Link>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         {cards.map((card) => (
           <div key={card.label} className="rounded-xl border border-gray-200 bg-white p-5">
             <card.icon className="h-6 w-6 text-sage-700" />
@@ -204,6 +242,15 @@ function Overview({ cards, trial, subscription, hasAccess }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function CoachStat({ label, value }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="mt-1 text-sm font-bold text-gray-900">{value}</p>
     </div>
   );
 }

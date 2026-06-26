@@ -1,4 +1,11 @@
-import { CheckCircleIcon, CalendarDaysIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import {
+  CalendarDaysIcon,
+  ChartBarIcon,
+  CheckCircleIcon,
+  DevicePhoneMobileIcon,
+  SparklesIcon,
+  StarIcon,
+} from '@heroicons/react/24/outline';
 import { trackCustomEvent, trackEvent } from '../services/metaPixel';
 
 const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
@@ -15,23 +22,34 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="pt-10 pb-4 bg-white lg:pt-14 lg:pb-8">
+      <section className="pt-10 pb-6 bg-white lg:pt-14 lg:pb-10">
         <div className="px-6 mx-auto max-w-content">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl font-bold leading-tight tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-              Fitness planning,{' '}
-              <span className="text-sage-600">simplified.</span>
+          <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-sage-700">
+              <span className="inline-flex items-center gap-1">
+                {[0, 1, 2, 3, 4].map((item) => (
+                  <StarIcon key={item} className="h-4 w-4 fill-sage-600 text-sage-600" />
+                ))}
+              </span>
+              <span>AI powered</span>
+              <span className="text-gray-300">|</span>
+              <span>14-day free trial</span>
+              <span className="text-gray-300">|</span>
+              <span>No credit card required</span>
+            </div>
+            <h1 className="mt-5 text-4xl font-bold leading-tight tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Your AI Personal Trainer.
             </h1>
             <p className="mt-6 text-xl leading-relaxed text-gray-600">
-              A calm, personal approach to workout planning. Build your routine, track your progress, and stay consistent—without the noise.
+              Personalized workouts, nutrition tracking, and intelligent coaching that adapts as you improve.
             </p>
-            <div className="mt-4">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <a
                 href="/signup"
                 onClick={() => trackEvent('Lead', { source: 'home_hero' })}
                 className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-colors bg-sage-700 rounded-xl hover:bg-sage-800"
               >
-                Start free trial
+                Start Your 14-Day Free Trial
               </a>
               {APP_STORE_URL ? (
                 <a
@@ -44,6 +62,14 @@ export default function HomePage() {
                   Download app
                 </a>
               ) : null}
+            </div>
+            <p className="mt-3 text-sm font-medium text-gray-500">No credit card required. Available on iPhone and Android.</p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <TrustPill icon={SparklesIcon} label="AI Powered" />
+              <TrustPill icon={CheckCircleIcon} label="Personalized Plans" />
+              <TrustPill icon={ChartBarIcon} label="Progress Tracking" />
+              <TrustPill icon={CalendarDaysIcon} label="14-Day Trial" />
+              <TrustPill icon={DevicePhoneMobileIcon} label="Mobile Ready" />
             </div>
           </div>
         </div>
@@ -65,8 +91,8 @@ export default function HomePage() {
             />
             <ValueCard
               icon={SparklesIcon}
-              title="Sustainable fitness"
-              description="No gimmicks or pressure. Just a simple tool to help you stay on track, day after day."
+              title="AI coach guidance"
+              description="See what to do next with coaching prompts that keep your plan, meals, and progress connected."
             />
           </div>
         </div>
@@ -82,7 +108,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="flex justify-center">
-            <div className="w-full max-w-2xl">
+            <div className="w-full max-w-4xl">
               <video
                 controls
                 poster="/Sage Set Poster.png"
@@ -102,15 +128,24 @@ export default function HomePage() {
         <div className="px-6 mx-auto text-center max-w-content">
           <h2 className="text-2xl font-semibold text-gray-900">Ready to get started?</h2>
           <p className="mt-3 text-gray-600">
-            Start with the 14-day free trial, then continue for $9.99/month.
+            Start with a 14-day free trial. No credit card required.
           </p>
           <p className="mt-4">
-            <a href="/pricing" className="font-semibold text-sage-700 hover:text-sage-800">
-              View pricing
+            <a href="/signup" className="font-semibold text-sage-700 hover:text-sage-800">
+              Start Your 14-Day Free Trial
             </a>
           </p>
         </div>
       </section>
+    </div>
+  );
+}
+
+function TrustPill({ icon: Icon, label }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm">
+      <Icon className="h-4 w-4 text-sage-700" />
+      <span>{label}</span>
     </div>
   );
 }
