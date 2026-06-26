@@ -26,21 +26,24 @@ export default function HomePage() {
               A calm, personal approach to workout planning. Build your routine, track your progress, and stay consistent—without the noise.
             </p>
             <div className="mt-4">
+              <a
+                href="/signup"
+                onClick={() => trackEvent('Lead', { source: 'home_hero' })}
+                className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-colors bg-sage-700 rounded-xl hover:bg-sage-800"
+              >
+                Start free trial
+              </a>
               {APP_STORE_URL ? (
                 <a
                   href={APP_STORE_URL}
                   onClick={handleDownloadClick}
-                  className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-colors bg-sage-700 rounded-xl hover:bg-sage-800"
+                  className="ml-3 inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-sage-700 transition-colors bg-white border border-sage-200 rounded-xl hover:border-sage-700"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Download on the App Store
+                  Download app
                 </a>
-              ) : (
-                <span className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-sage-700 rounded-xl">
-                  Coming Soon
-                </span>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

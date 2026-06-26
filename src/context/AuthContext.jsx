@@ -1,18 +1,30 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { 
   onAuthStateChanged, 
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword, 
   signOut,
-  sendPasswordResetEmail 
+  sendPasswordResetEmail,
+  updateProfile,
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions } from '../config/firebase';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const loadUserData = async (uid) => {
+    const snap = await getDoc(doc(db, 'users', uid));
+    const data = snap.exists() ? snap.data() : null;
+    setUserData(data);
+    return data;
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -23,8 +35,10 @@ export function AuthProvider({ children }) {
         const adminClaim = tokenResult.claims.admin === true;
         setIsAdmin(adminClaim);
         setUser(user);
+        await loadUserData(user.uid);
       } else {
         setUser(null);
+        setUserData(null);
         setIsAdmin(false);
       }
       setLoading(false);
@@ -34,6 +48,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await loadUserData(userCredential.user.uid);
+    return userCredential.user;
+  };
+
+  const loginAdmin = async (email, password) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const tokenResult = await userCredential.user.getIdTokenResult(true);
     const adminClaim = tokenResult.claims.admin === true;
@@ -46,9 +66,84 @@ export function AuthProvider({ children }) {
     return userCredential.user;
   };
 
+  const signup = async ({ email, password, firstName = '', lastName = '' }) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const displayName = `${firstName} ${lastName}`.trim() || null;
+    if (displayName) {
+      await updateProfile(userCredential.user, { displayName });
+    }
+
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      email,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      displayName,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      units: 'imperial',
+      trial: {
+        startedAt: null,
+        endsAt: null,
+        status: 'active',
+        source: 'account_creation',
+        dayNumber: 1,
+      },
+      subscription: {
+        provider: 'stripe',
+        status: 'none',
+        source: null,
+        plan: 'free',
+        planId: null,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        lastVerifiedAt: null,
+      },
+      entitlements: {
+        premium: true,
+        nutritionAnalysis: true,
+        aiWorkoutGeneration: true,
+        progressTracking: true,
+        advancedAnalytics: false,
+        arkitChallenges: false,
+      },
+      notificationPreferences: {
+        email: true,
+        push: true,
+        marketing: false,
+        trialReminders: true,
+      },
+      metrics: {
+        workoutsCompleted: 0,
+        mealsLogged: 0,
+        mealAnalysesUsed: 0,
+        streakDays: 0,
+        weightEntries: 0,
+        lastWorkoutAt: null,
+        lastMealLoggedAt: null,
+      },
+      featureFlags: {
+        arkitChallengesEnabled: false,
+      },
+    });
+
+    const initializeTrial = httpsCallable(functions, 'initializeUserTrial');
+    await initializeTrial({});
+    await loadUserData(userCredential.user.uid);
+    return userCredential.user;
+  };
+
+  const refreshUserData = async () => {
+    if (!auth.currentUser) return null;
+    return await loadUserData(auth.currentUser.uid);
+  };
+
   const logout = async () => {
     await signOut(auth);
     setUser(null);
+    setUserData(null);
     setIsAdmin(false);
   };
 
@@ -58,11 +153,15 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
+    userData,
     isAdmin,
     loading,
     login,
+    loginAdmin,
+    signup,
     logout,
     resetPassword,
+    refreshUserData,
   };
 
   return (

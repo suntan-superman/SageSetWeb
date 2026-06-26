@@ -106,50 +106,50 @@ export default function MarketingLandingPage({ path = '/' }) {
     } else if (path === '/pricing') {
       trackCustomEvent('TrialStarted', { source: path, value: 9.99, currency: 'USD' });
     } else {
-      trackEvent(content.event, { content_name: content.title, content_category: 'marketing_page' });
+      trackEvent('Lead', { content_name: content.title, content_category: 'marketing_page' });
     }
   };
 
   return (
     <div>
-      <section className="bg-white">
+      <section className="bg-gray-950 text-white">
         <div className="mx-auto grid max-w-content gap-10 px-6 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-16">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-sage-700">{content.eyebrow}</p>
-            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-gray-900 sm:text-5xl">
+            <p className="text-sm font-semibold uppercase tracking-wide text-sage-300">{content.eyebrow}</p>
+            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
               {content.title}
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-gray-600">{content.body}</p>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-gray-300">{content.body}</p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              {APP_STORE_URL ? (
+              {path === '/download' && APP_STORE_URL ? (
                 <a
                   href={APP_STORE_URL}
                   onClick={handlePrimaryClick}
-                  className="inline-flex items-center justify-center rounded-lg bg-sage-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-sage-800"
+                  className="inline-flex items-center justify-center rounded-lg bg-sage-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-sage-600"
                   target="_blank"
                   rel="noreferrer"
                 >
                   Download SageSet
                 </a>
               ) : (
-                <button
-                  type="button"
+                <a
+                  href="/signup"
                   onClick={handlePrimaryClick}
-                  className="inline-flex items-center justify-center rounded-lg bg-sage-700 px-6 py-3 text-base font-semibold text-white"
+                  className="inline-flex items-center justify-center rounded-lg bg-sage-500 px-6 py-3 text-base font-semibold text-white hover:bg-sage-600"
                 >
-                  App Store coming soon
-                </button>
+                  Start free trial
+                </a>
               )}
               <a
                 href="/pricing"
-                className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-6 py-3 text-base font-semibold text-gray-800 transition-colors hover:border-sage-600 hover:text-sage-700"
+                className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3 text-base font-semibold text-white transition-colors hover:border-sage-300 hover:text-sage-200"
               >
                 See pricing
               </a>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-950 shadow-xl">
+          <div className="overflow-hidden rounded-2xl border border-sage-300/20 bg-gray-900 shadow-2xl shadow-sage-900/30">
             <img
               src="/Sage Set Poster.png"
               alt="SageSet mobile app preview"
@@ -160,12 +160,12 @@ export default function MarketingLandingPage({ path = '/' }) {
         </div>
       </section>
 
-      <section className="bg-gray-50 py-10">
+      <section className="bg-gray-900 py-10">
         <div className="mx-auto grid max-w-content gap-5 px-6 md:grid-cols-3">
           {content.bullets.map((bullet) => (
-            <div key={bullet} className="rounded-lg border border-gray-200 bg-white p-5">
-              <Icon className="h-7 w-7 text-sage-700" />
-              <p className="mt-4 text-lg font-semibold text-gray-900">{bullet}</p>
+            <div key={bullet} className="rounded-lg border border-white/10 bg-white/5 p-5">
+              <Icon className="h-7 w-7 text-sage-300" />
+              <p className="mt-4 text-lg font-semibold text-white">{bullet}</p>
             </div>
           ))}
         </div>

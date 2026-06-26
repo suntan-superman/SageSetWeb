@@ -77,3 +77,7 @@ export async function listNutritionUsageForAdmin(limit = 100) {
     }
   );
 }
+
+export async function updateUserAccessForAdmin({ uid, action }) {
+  return await callAdminFunction('updateUserAccessForAdmin', { uid, action });
+}

@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
   const [resetSent, setResetSent] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, resetPassword } = useAuth();
+  const { loginAdmin, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await loginAdmin(email, password);
       navigate('/admin/users');
     } catch (err) {
       console.warn('Login error:', err);

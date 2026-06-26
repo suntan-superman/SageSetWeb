@@ -36,6 +36,9 @@ export default function Layout({ children }) {
             <NavLink to="/download" className={navLinkClass}>
               Download
             </NavLink>
+            <NavLink to="/login" className={navLinkClass}>
+              Sign in
+            </NavLink>
           </nav>
         </div>
       </header>

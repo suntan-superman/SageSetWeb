@@ -3,6 +3,8 @@ import Layout from './components/Layout.jsx';
 import HomePage from './pages/HomePage.jsx';
 import MarketingLandingPage from './pages/MarketingLandingPage.jsx';
 import SimpleInfoPage from './pages/SimpleInfoPage.jsx';
+import AuthPage from './pages/AuthPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import SupportPage from './pages/SupportPage.jsx';
@@ -32,6 +34,24 @@ function ProtectedAdminRoute({ children }) {
     return <Navigate to="/admin" replace />;
   }
   
+  return children;
+}
+
+function ProtectedMemberRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-sage-300 text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 }
 
@@ -114,6 +134,32 @@ export default function App() {
         
         {/* Public routes with Layout */}
         <Route path="/" element={<Layout><HomePage /></Layout>} />
+        <Route path="/login" element={<Layout><AuthPage mode="login" /></Layout>} />
+        <Route path="/signup" element={<Layout><AuthPage mode="signup" /></Layout>} />
+        <Route
+          path="/dashboard"
+          element={<Layout><ProtectedMemberRoute><DashboardPage section="overview" /></ProtectedMemberRoute></Layout>}
+        />
+        <Route
+          path="/dashboard/progress"
+          element={<Layout><ProtectedMemberRoute><DashboardPage section="progress" /></ProtectedMemberRoute></Layout>}
+        />
+        <Route
+          path="/dashboard/workouts"
+          element={<Layout><ProtectedMemberRoute><DashboardPage section="workouts" /></ProtectedMemberRoute></Layout>}
+        />
+        <Route
+          path="/dashboard/nutrition"
+          element={<Layout><ProtectedMemberRoute><DashboardPage section="nutrition" /></ProtectedMemberRoute></Layout>}
+        />
+        <Route
+          path="/dashboard/account"
+          element={<Layout><ProtectedMemberRoute><DashboardPage section="account" /></ProtectedMemberRoute></Layout>}
+        />
+        <Route
+          path="/dashboard/billing"
+          element={<Layout><ProtectedMemberRoute><DashboardPage section="billing" /></ProtectedMemberRoute></Layout>}
+        />
         {marketingRoutes.map((path) => (
           <Route
             key={path}

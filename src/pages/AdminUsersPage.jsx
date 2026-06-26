@@ -17,6 +17,7 @@ import {
   getUserAdminDetail,
   listUsersForAdmin,
   sendUserExpoNotification,
+  updateUserAccessForAdmin,
 } from '../services/adminUsers.js';
 
 const formatDateTime = (value) => {
@@ -262,6 +263,7 @@ export default function AdminUsersPage() {
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [sendingNotification, setSendingNotification] = useState(false);
+  const [accessActionLoading, setAccessActionLoading] = useState('');
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
   const selectedSummary = useMemo(
@@ -400,6 +402,29 @@ export default function AdminUsersPage() {
       setActionError(error?.message || 'Failed to send notification.');
     } finally {
       setSendingNotification(false);
+    }
+  };
+
+  const handleAccessAction = async (action) => {
+    if (!selectedUserId) return;
+    setAccessActionLoading(action);
+    setActionMessage('');
+    setActionError('');
+
+    try {
+      await updateUserAccessForAdmin({ uid: selectedUserId, action });
+      setDetailCache((prev) => {
+        const next = { ...prev };
+        delete next[selectedUserId];
+        return next;
+      });
+      await selectUser(selectedUserId, { force: true });
+      setActionMessage(`Access action completed: ${action}`);
+    } catch (error) {
+      console.warn('Failed to update user access:', error);
+      setActionError(error?.message || 'Failed to update user access.');
+    } finally {
+      setAccessActionLoading('');
     }
   };
 
@@ -632,6 +657,34 @@ export default function AdminUsersPage() {
                             {sendingNotification ? 'Sending...' : 'Send Notification'}
                           </button>
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-6">
+                      <h3 className="text-lg font-semibold text-white">Access Controls</h3>
+                      <div className="mt-4 grid gap-3 md:grid-cols-3">
+                        <DetailRow label="Trial" value={selectedDetail.rawUserData?.trial?.status || 'Not set'} />
+                        <DetailRow label="Subscription" value={selectedDetail.rawUserData?.subscription?.status || 'Not set'} />
+                        <DetailRow label="Source" value={selectedDetail.rawUserData?.subscription?.source || 'Not set'} />
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {[
+                          ['extend_trial_7', 'Extend trial 7 days'],
+                          ['grant_premium_7', 'Grant premium 7 days'],
+                          ['revoke_premium', 'Revoke premium'],
+                          ['toggle_arkit_beta', 'Toggle AR beta'],
+                          ['recalculate', 'Recalculate'],
+                        ].map(([action, label]) => (
+                          <button
+                            key={action}
+                            type="button"
+                            onClick={() => handleAccessAction(action)}
+                            disabled={!!accessActionLoading}
+                            className="rounded-lg bg-gray-700 px-3 py-2 text-sm font-medium text-gray-100 transition hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {accessActionLoading === action ? 'Working...' : label}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
