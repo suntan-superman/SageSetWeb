@@ -60,6 +60,8 @@ export default function AuthPage({ mode = 'login' }) {
         }
         await signup(form);
         trackEvent('CompleteRegistration', { method: 'email' });
+        navigate('/verify-email');
+        return;
       } else {
         await login(form.email, form.password);
       }

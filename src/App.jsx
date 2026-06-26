@@ -5,6 +5,7 @@ import MarketingLandingPage from './pages/MarketingLandingPage.jsx';
 import SimpleInfoPage from './pages/SimpleInfoPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import SupportPage from './pages/SupportPage.jsx';
@@ -39,6 +40,7 @@ function ProtectedAdminRoute({ children }) {
 
 function ProtectedMemberRoute({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -50,6 +52,10 @@ function ProtectedMemberRoute({ children }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!user.emailVerified && location.pathname !== '/verify-email') {
+    return <Navigate to="/verify-email" replace />;
   }
 
   return children;
@@ -136,6 +142,7 @@ export default function App() {
         <Route path="/" element={<Layout><HomePage /></Layout>} />
         <Route path="/login" element={<Layout><AuthPage mode="login" /></Layout>} />
         <Route path="/signup" element={<Layout><AuthPage mode="signup" /></Layout>} />
+        <Route path="/verify-email" element={<Layout><VerifyEmailPage /></Layout>} />
         <Route
           path="/dashboard"
           element={<Layout><ProtectedMemberRoute><DashboardPage section="overview" /></ProtectedMemberRoute></Layout>}

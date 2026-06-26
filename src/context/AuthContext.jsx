@@ -169,6 +169,35 @@ export function AuthProvider({ children }) {
     return await loadUserData(auth.currentUser.uid);
   };
 
+  const refreshAuthUser = async () => {
+    if (!auth.currentUser) return null;
+    await auth.currentUser.reload();
+    const refreshedUser = auth.currentUser;
+    setUser(refreshedUser);
+    if (refreshedUser?.emailVerified) {
+      await setDoc(
+        doc(db, 'users', refreshedUser.uid),
+        {
+          contact: {
+            emailVerified: true,
+            emailVerifiedAt: serverTimestamp(),
+          },
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      await loadUserData(refreshedUser.uid);
+    }
+    return refreshedUser;
+  };
+
+  const resendVerificationEmail = async () => {
+    if (!auth.currentUser) {
+      throw new Error('No signed-in user.');
+    }
+    await sendEmailVerification(auth.currentUser);
+  };
+
   const logout = async () => {
     await signOut(auth);
     setUser(null);
@@ -191,6 +220,8 @@ export function AuthProvider({ children }) {
     logout,
     resetPassword,
     refreshUserData,
+    refreshAuthUser,
+    resendVerificationEmail,
   };
 
   return (
