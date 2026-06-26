@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { trackEvent } from '../services/metaPixel';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -7,7 +8,9 @@ export default function AuthPage({ mode = 'login' }) {
   const isSignup = mode === 'signup';
   const { login, signup, resetPassword } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '' });
+  const [form, setForm] = useState({ email: '', password: '', confirmPassword: '', firstName: '', lastName: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -24,6 +27,11 @@ export default function AuthPage({ mode = 'login' }) {
 
     try {
       if (isSignup) {
+        if (form.password !== form.confirmPassword) {
+          setError('Passwords do not match.');
+          setBusy(false);
+          return;
+        }
         await signup(form);
         trackEvent('CompleteRegistration', { method: 'email' });
       } else {
@@ -77,7 +85,24 @@ export default function AuthPage({ mode = 'login' }) {
 
           <div className="mt-4 space-y-4">
             <Field label="Email" type="email" value={form.email} onChange={updateField('email')} required />
-            <Field label="Password" type="password" value={form.password} onChange={updateField('password')} required />
+            <PasswordField
+              label="Password"
+              value={form.password}
+              onChange={updateField('password')}
+              visible={showPassword}
+              onToggle={() => setShowPassword((value) => !value)}
+              required
+            />
+            {isSignup ? (
+              <PasswordField
+                label="Confirm password"
+                value={form.confirmPassword}
+                onChange={updateField('confirmPassword')}
+                visible={showConfirmPassword}
+                onToggle={() => setShowConfirmPassword((value) => !value)}
+                required
+              />
+            ) : null}
           </div>
 
           {error ? <p className="mt-4 rounded-lg bg-red-500/20 px-4 py-3 text-sm text-red-100">{error}</p> : null}
@@ -120,6 +145,31 @@ function Field({ label, type = 'text', value, onChange, required = false }) {
         required={required}
         className="mt-2 w-full rounded-lg border border-white/10 bg-white px-4 py-3 text-gray-900 outline-none ring-sage-400 focus:ring-2"
       />
+    </label>
+  );
+}
+
+function PasswordField({ label, value, onChange, visible, onToggle, required = false }) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium text-gray-200">{label}</span>
+      <div className="relative mt-2">
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={onChange}
+          required={required}
+          className="w-full rounded-lg border border-white/10 bg-white px-4 py-3 pr-12 text-gray-900 outline-none ring-sage-400 focus:ring-2"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+          aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+        >
+          {visible ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+        </button>
+      </div>
     </label>
   );
 }
