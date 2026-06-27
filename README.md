@@ -49,16 +49,18 @@ To send real browser events to Meta Events Manager Test Events, copy the active 
 
 ```powershell
 $env:SAGESET_META_TEST_EVENT_CODE="TEST20042"
-npm run pixel:test:live
+npm run pixel:test:live:headful
 Remove-Item Env:\SAGESET_META_TEST_EVENT_CODE
 ```
+
+Headful mode opens a visible Chrome session. Meta's browser Pixel library may load in headless Puppeteer without emitting the final `facebook.com/tr` collection requests, so use headful mode when confirming events inside Meta Events Manager.
 
 To send events from the already-deployed site instead of the local Vite server:
 
 ```powershell
 $env:SAGESET_PIXEL_TEST_URL="https://sagesetfitness.com"
 $env:SAGESET_META_TEST_EVENT_CODE="TEST20042"
-npm run pixel:test:live
+npm run pixel:test:live:headful
 Remove-Item Env:\SAGESET_META_TEST_EVENT_CODE
 Remove-Item Env:\SAGESET_PIXEL_TEST_URL
 ```

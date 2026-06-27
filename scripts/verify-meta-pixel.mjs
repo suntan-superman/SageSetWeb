@@ -3,13 +3,15 @@ import process from 'node:process';
 import puppeteer from 'puppeteer';
 
 const HOST = '127.0.0.1';
-const PORT = Number(process.env.SAGESET_PIXEL_TEST_PORT || 4174);
+const LIVE_MODE = process.env.SAGESET_PIXEL_TEST_LIVE === '1' || process.argv.includes('--live');
+const PORT = Number(process.env.SAGESET_PIXEL_TEST_PORT || (LIVE_MODE ? 4175 : 4174));
 const DEFAULT_BASE_URL = `http://${HOST}:${PORT}`;
 const BASE_URL = (process.env.SAGESET_PIXEL_TEST_URL || DEFAULT_BASE_URL).replace(/\/$/, '');
 const SHOULD_START_SERVER = !process.env.SAGESET_PIXEL_TEST_URL;
-const LIVE_MODE = process.env.SAGESET_PIXEL_TEST_LIVE === '1' || process.argv.includes('--live');
 const TEST_EVENT_CODE = String(process.env.SAGESET_META_TEST_EVENT_CODE || '').trim();
 const PIXEL_DEBUG_KEY = '__SAGESET_META_PIXEL_EVENTS__';
+const PIXEL_REQUEST_PATTERN = /(?:facebook|facebook-n?ocookie)\.com\/tr/i;
+const HEADFUL_MODE = process.env.SAGESET_PIXEL_TEST_HEADFUL === '1' || process.argv.includes('--headful');
 
 const scenarios = [
   {
@@ -91,6 +93,27 @@ async function installFbqRecorder(page) {
   });
 }
 
+function installPixelNetworkRecorder(page) {
+  const pixelRequests = [];
+  page.on('request', (request) => {
+    const url = request.url();
+    if (!PIXEL_REQUEST_PATTERN.test(url)) return;
+    const parsed = new URL(url);
+    const eventName = parsed.searchParams.get('ev') || '';
+    pixelRequests.push({
+      eventName,
+      url,
+      testEventCode:
+        parsed.searchParams.get('test_event_code') ||
+        parsed.searchParams.get('cd[test_event_code]') ||
+        '',
+      pixelId: parsed.searchParams.get('id') || '',
+      timestamp: new Date().toISOString(),
+    });
+  });
+  return pixelRequests;
+}
+
 async function getPixelEvents(page) {
   if (LIVE_MODE) {
     return page.evaluate((key) => window[key] || [], PIXEL_DEBUG_KEY);
@@ -127,7 +150,8 @@ function summarizeEvents(events) {
     .filter((event) => event.kind !== 'init');
 }
 
-async function runScenario(page, scenario) {
+async function runScenario(page, scenario, pixelRequests = []) {
+  pixelRequests.length = 0;
   if (LIVE_MODE) {
     await page.evaluate((key) => {
       window[key] = [];
@@ -167,9 +191,23 @@ async function runScenario(page, scenario) {
     }
   }
 
+  if (LIVE_MODE) {
+    const missingNetworkEvents = scenario.expected.filter(
+      (name) => !pixelRequests.some((request) => request.eventName === name)
+    );
+    if (missingNetworkEvents.length) {
+      throw new Error(
+        `Missing outbound Meta Pixel request(s) on ${scenario.path}: ${missingNetworkEvents.join(', ')}\n` +
+          `Observed Pixel requests: ${JSON.stringify(pixelRequests, null, 2)}\n` +
+          `Observed app calls: ${JSON.stringify(summarizeEvents(events), null, 2)}`
+      );
+    }
+  }
+
   return {
     path: scenario.path,
     events: summarizeEvents(events),
+    pixelRequests: [...pixelRequests],
   };
 }
 
@@ -184,24 +222,36 @@ async function main() {
     }
 
     browser = await puppeteer.launch({
-      headless: 'new',
+      headless: HEADFUL_MODE ? false : 'new',
       defaultViewport: { width: 1280, height: 900 },
+      args: LIVE_MODE ? ['--disable-blink-features=AutomationControlled'] : [],
     });
 
     const page = await browser.newPage();
+    if (LIVE_MODE) {
+      await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', {
+          get: () => undefined,
+        });
+      });
+    }
+    const pixelRequests = LIVE_MODE ? installPixelNetworkRecorder(page) : [];
     if (!LIVE_MODE) {
       await installFbqRecorder(page);
     }
 
     const results = [];
     for (const scenario of scenarios) {
-      results.push(await runScenario(page, scenario));
+      results.push(await runScenario(page, scenario, pixelRequests));
     }
 
     console.log(`\nMeta Pixel Puppeteer verification passed${LIVE_MODE ? ' in live mode' : ''}.\n`);
     results.forEach((result) => {
       const eventLabels = result.events.map((event) => `${event.kind}:${event.name}`).join(', ');
-      console.log(`${result.path} -> ${eventLabels}`);
+      const networkLabels = result.pixelRequests?.length
+        ? ` | network: ${result.pixelRequests.map((request) => request.eventName).join(', ')}`
+        : '';
+      console.log(`${result.path} -> ${eventLabels}${networkLabels}`);
     });
   } catch (error) {
     const message = String(error?.message || error);

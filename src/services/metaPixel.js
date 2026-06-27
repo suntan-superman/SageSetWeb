@@ -32,23 +32,32 @@ export function trackPageView() {
   const currentPath = `${window.location.pathname}${window.location.search}`;
   if (currentPath === lastPageViewPath) return;
   lastPageViewPath = currentPath;
+  const parameters = getPixelEventParameters({});
   const eventOptions = getPixelEventOptions();
-  window.fbq('track', 'PageView', {}, eventOptions);
-  recordPixelDebugEvent('track', 'PageView', {}, eventOptions);
+  window.fbq('track', 'PageView', parameters, eventOptions);
+  recordPixelDebugEvent('track', 'PageView', parameters, eventOptions);
 }
 
 export function trackEvent(name, parameters = {}) {
   if (!PIXEL_ID || typeof window === 'undefined' || typeof window.fbq !== 'function') return;
+  const eventParameters = getPixelEventParameters(parameters);
   const eventOptions = getPixelEventOptions();
-  window.fbq('track', name, parameters, eventOptions);
-  recordPixelDebugEvent('track', name, parameters, eventOptions);
+  window.fbq('track', name, eventParameters, eventOptions);
+  recordPixelDebugEvent('track', name, eventParameters, eventOptions);
 }
 
 export function trackCustomEvent(name, parameters = {}) {
   if (!PIXEL_ID || typeof window === 'undefined' || typeof window.fbq !== 'function') return;
+  const eventParameters = getPixelEventParameters(parameters);
   const eventOptions = getPixelEventOptions();
-  window.fbq('trackCustom', name, parameters, eventOptions);
-  recordPixelDebugEvent('trackCustom', name, parameters, eventOptions);
+  window.fbq('trackCustom', name, eventParameters, eventOptions);
+  recordPixelDebugEvent('trackCustom', name, eventParameters, eventOptions);
+}
+
+function getPixelEventParameters(parameters = {}) {
+  if (typeof window === 'undefined') return parameters;
+  const testEventCode = new URLSearchParams(window.location.search).get('test_event_code');
+  return testEventCode ? { ...parameters, test_event_code: testEventCode } : parameters;
 }
 
 function getPixelEventOptions() {
