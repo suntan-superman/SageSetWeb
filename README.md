@@ -33,3 +33,23 @@ Tracked browser events:
 - `Subscribe` on `/billing/success`
 - custom `CheckoutCancelled`, `CheckoutSessionCreated`, and `DownloadClicked`
 
+Verify the browser-side Pixel calls with Puppeteer:
+
+```powershell
+npm run pixel:test
+```
+
+The verifier starts a local Vite server, stubs `window.fbq` so no real Meta traffic is sent, and checks the public funnel routes for the expected calls. If Puppeteer reports that Chrome is missing, run this once:
+
+```powershell
+npm run pixel:install-browser
+```
+
+To test an already-deployed site instead of the local Vite server:
+
+```powershell
+$env:SAGESET_PIXEL_TEST_URL="https://sagesetfitness.com"
+npm run pixel:test
+Remove-Item Env:\SAGESET_PIXEL_TEST_URL
+```
+
