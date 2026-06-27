@@ -44,13 +44,18 @@ export default function SimpleInfoPage({ path }) {
 
   useEffect(() => {
     if (path === '/billing/success') {
+      trackEvent('StartTrial', {
+        content_name: 'SageSet Premium',
+        content_category: 'subscription',
+        currency: 'USD',
+        value: 9.99,
+      });
       trackEvent('Subscribe', {
         content_name: 'SageSet Premium',
         content_category: 'subscription',
         currency: 'USD',
         value: 9.99,
       });
-      trackCustomEvent('TrialStarted', { source: 'stripe_success', value: 9.99, currency: 'USD' });
     }
 
     if (path === '/billing/cancel') {

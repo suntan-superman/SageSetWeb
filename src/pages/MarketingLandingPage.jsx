@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   ArrowDownTrayIcon,
   BoltIcon,
@@ -74,7 +75,7 @@ const pageContent = {
     title: 'Start free. Keep going for $9.99/month.',
     body: 'Try SageSet Premium free for 14 days. Continue only if it helps you train with less friction.',
     icon: CheckCircleIcon,
-    event: 'TrialStarted',
+    event: 'ViewContent',
     bullets: ['14-day free trial', '$9.99 monthly plan', 'Cancel through Stripe billing'],
   },
   '/download': {
@@ -100,11 +101,18 @@ export default function MarketingLandingPage({ path = '/' }) {
   const content = pageContent[path] || fallbackContent;
   const Icon = content.icon;
 
+  useEffect(() => {
+    trackEvent('ViewContent', {
+      content_name: content.title,
+      content_category: path === '/pricing' ? 'pricing' : 'marketing_page',
+    });
+  }, [content.title, path]);
+
   const handlePrimaryClick = () => {
     if (path === '/download') {
       trackCustomEvent('DownloadClicked', { source: path });
     } else if (path === '/pricing') {
-      trackCustomEvent('TrialStarted', { source: path, value: 9.99, currency: 'USD' });
+      trackEvent('Lead', { content_name: 'pricing_start_trial_click', content_category: 'pricing' });
     } else {
       trackEvent('Lead', { content_name: content.title, content_category: 'marketing_page' });
     }

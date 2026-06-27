@@ -28,7 +28,8 @@ Tracked browser events:
 - `ViewContent` on signup and marketing content
 - `Lead` on signup intent
 - `CompleteRegistration` after successful web signup
+- `StartTrial` on `/billing/success`
 - `InitiateCheckout` when the Stripe checkout flow starts
-- `Subscribe` and custom `TrialStarted` on `/billing/success`
+- `Subscribe` on `/billing/success`
 - custom `CheckoutCancelled`, `CheckoutSessionCreated`, and `DownloadClicked`
 
