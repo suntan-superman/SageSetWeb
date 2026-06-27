@@ -7,6 +7,9 @@ const PORT = Number(process.env.SAGESET_PIXEL_TEST_PORT || 4174);
 const DEFAULT_BASE_URL = `http://${HOST}:${PORT}`;
 const BASE_URL = (process.env.SAGESET_PIXEL_TEST_URL || DEFAULT_BASE_URL).replace(/\/$/, '');
 const SHOULD_START_SERVER = !process.env.SAGESET_PIXEL_TEST_URL;
+const LIVE_MODE = process.env.SAGESET_PIXEL_TEST_LIVE === '1' || process.argv.includes('--live');
+const TEST_EVENT_CODE = String(process.env.SAGESET_META_TEST_EVENT_CODE || '').trim();
+const PIXEL_DEBUG_KEY = '__SAGESET_META_PIXEL_EVENTS__';
 
 const scenarios = [
   {
@@ -89,21 +92,29 @@ async function installFbqRecorder(page) {
 }
 
 async function getPixelEvents(page) {
+  if (LIVE_MODE) {
+    return page.evaluate((key) => window[key] || [], PIXEL_DEBUG_KEY);
+  }
   return page.evaluate(() => window.__SAGESET_PIXEL_TEST_EVENTS__ || []);
 }
 
 function eventNameFromCall(call) {
+  if (LIVE_MODE) return call.name;
   const [kind, name] = call.args || [];
   if (kind === 'track' || kind === 'trackCustom') return name;
   return kind;
 }
 
 function eventKindFromCall(call) {
+  if (LIVE_MODE) return call.kind;
   const [kind] = call.args || [];
   return kind;
 }
 
 function summarizeEvents(events) {
+  if (LIVE_MODE) {
+    return events.filter((event) => event.kind !== 'init');
+  }
   return events
     .map((event) => {
       const [kind, name, parameters] = event.args || [];
@@ -117,15 +128,21 @@ function summarizeEvents(events) {
 }
 
 async function runScenario(page, scenario) {
-  await page.evaluate(() => {
-    window.__SAGESET_PIXEL_TEST_EVENTS__ = [];
-  });
+  if (LIVE_MODE) {
+    await page.evaluate((key) => {
+      window[key] = [];
+    }, PIXEL_DEBUG_KEY);
+  } else {
+    await page.evaluate(() => {
+      window.__SAGESET_PIXEL_TEST_EVENTS__ = [];
+    });
+  }
 
-  await page.goto(`${BASE_URL}${scenario.path}`, {
+  await page.goto(buildScenarioUrl(scenario.path), {
     waitUntil: 'networkidle2',
     timeout: 30000,
   });
-  await delay(750);
+  await delay(LIVE_MODE ? 2500 : 750);
 
   const events = await getPixelEvents(page);
   const names = events.map(eventNameFromCall);
@@ -172,14 +189,16 @@ async function main() {
     });
 
     const page = await browser.newPage();
-    await installFbqRecorder(page);
+    if (!LIVE_MODE) {
+      await installFbqRecorder(page);
+    }
 
     const results = [];
     for (const scenario of scenarios) {
       results.push(await runScenario(page, scenario));
     }
 
-    console.log('\nMeta Pixel Puppeteer verification passed.\n');
+    console.log(`\nMeta Pixel Puppeteer verification passed${LIVE_MODE ? ' in live mode' : ''}.\n`);
     results.forEach((result) => {
       const eventLabels = result.events.map((event) => `${event.kind}:${event.name}`).join(', ');
       console.log(`${result.path} -> ${eventLabels}`);
@@ -207,3 +226,11 @@ async function main() {
 }
 
 main();
+
+function buildScenarioUrl(path) {
+  const url = new URL(`${BASE_URL}${path}`);
+  if (LIVE_MODE && TEST_EVENT_CODE) {
+    url.searchParams.set('test_event_code', TEST_EVENT_CODE);
+  }
+  return url.toString();
+}

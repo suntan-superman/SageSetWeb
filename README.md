@@ -33,7 +33,7 @@ Tracked browser events:
 - `Subscribe` on `/billing/success`
 - custom `CheckoutCancelled`, `CheckoutSessionCreated`, and `DownloadClicked`
 
-Verify the browser-side Pixel calls with Puppeteer:
+Verify the browser-side Pixel calls with Puppeteer without sending traffic to Meta:
 
 ```powershell
 npm run pixel:test
@@ -45,11 +45,21 @@ The verifier starts a local Vite server, stubs `window.fbq` so no real Meta traf
 npm run pixel:install-browser
 ```
 
-To test an already-deployed site instead of the local Vite server:
+To send real browser events to Meta Events Manager Test Events, copy the active test event code from Meta and run:
+
+```powershell
+$env:SAGESET_META_TEST_EVENT_CODE="TEST20042"
+npm run pixel:test:live
+Remove-Item Env:\SAGESET_META_TEST_EVENT_CODE
+```
+
+To send events from the already-deployed site instead of the local Vite server:
 
 ```powershell
 $env:SAGESET_PIXEL_TEST_URL="https://sagesetfitness.com"
-npm run pixel:test
+$env:SAGESET_META_TEST_EVENT_CODE="TEST20042"
+npm run pixel:test:live
+Remove-Item Env:\SAGESET_META_TEST_EVENT_CODE
 Remove-Item Env:\SAGESET_PIXEL_TEST_URL
 ```
 

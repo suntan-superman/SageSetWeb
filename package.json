@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "pixel:test": "node scripts/verify-meta-pixel.mjs",
+    "pixel:test:live": "node scripts/verify-meta-pixel.mjs --live",
     "pixel:install-browser": "puppeteer browsers install chrome"
   },
   "dependencies": {

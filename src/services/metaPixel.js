@@ -1,4 +1,5 @@
 const PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || '';
+const PIXEL_DEBUG_KEY = '__SAGESET_META_PIXEL_EVENTS__';
 
 let initialized = false;
 let lastPageViewPath = '';
@@ -22,6 +23,7 @@ export function initMetaPixel() {
   /* eslint-enable */
 
   window.fbq('init', PIXEL_ID);
+  recordPixelDebugEvent('init', PIXEL_ID);
   initialized = true;
 }
 
@@ -30,15 +32,40 @@ export function trackPageView() {
   const currentPath = `${window.location.pathname}${window.location.search}`;
   if (currentPath === lastPageViewPath) return;
   lastPageViewPath = currentPath;
-  window.fbq('track', 'PageView');
+  const eventOptions = getPixelEventOptions();
+  window.fbq('track', 'PageView', {}, eventOptions);
+  recordPixelDebugEvent('track', 'PageView', {}, eventOptions);
 }
 
 export function trackEvent(name, parameters = {}) {
   if (!PIXEL_ID || typeof window === 'undefined' || typeof window.fbq !== 'function') return;
-  window.fbq('track', name, parameters);
+  const eventOptions = getPixelEventOptions();
+  window.fbq('track', name, parameters, eventOptions);
+  recordPixelDebugEvent('track', name, parameters, eventOptions);
 }
 
 export function trackCustomEvent(name, parameters = {}) {
   if (!PIXEL_ID || typeof window === 'undefined' || typeof window.fbq !== 'function') return;
-  window.fbq('trackCustom', name, parameters);
+  const eventOptions = getPixelEventOptions();
+  window.fbq('trackCustom', name, parameters, eventOptions);
+  recordPixelDebugEvent('trackCustom', name, parameters, eventOptions);
+}
+
+function getPixelEventOptions() {
+  if (typeof window === 'undefined') return undefined;
+  const testEventCode = new URLSearchParams(window.location.search).get('test_event_code');
+  return testEventCode ? { test_event_code: testEventCode } : undefined;
+}
+
+function recordPixelDebugEvent(kind, name, parameters = {}, options = undefined) {
+  if (typeof window === 'undefined') return;
+  window[PIXEL_DEBUG_KEY] = window[PIXEL_DEBUG_KEY] || [];
+  window[PIXEL_DEBUG_KEY].push({
+    kind,
+    name,
+    parameters,
+    options,
+    timestamp: new Date().toISOString(),
+  });
+  window[PIXEL_DEBUG_KEY] = window[PIXEL_DEBUG_KEY].slice(-50);
 }
