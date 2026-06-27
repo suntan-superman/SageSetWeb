@@ -11,7 +11,12 @@
     "pixel:test": "node scripts/verify-meta-pixel.mjs",
     "pixel:test:live": "node scripts/verify-meta-pixel.mjs --live",
     "pixel:test:live:headful": "node scripts/verify-meta-pixel.mjs --live --headful",
-    "pixel:install-browser": "puppeteer browsers install chrome"
+    "pixel:install-browser": "puppeteer browsers install chrome",
+    "verify:release": "node ./scripts/verify-release.js",
+    "verify:release:local": "node ./scripts/verify-release.js --target local",
+    "verify:release:prod": "node ./scripts/verify-release.js --target production",
+    "test:puppeteer": "node ./scripts/verify-release.js --only routes",
+    "test:meta": "node ./scripts/verify-release.js --only meta"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

@@ -9,6 +9,7 @@ android/
 ios/
 dist/
 web-build/
+reports/
 expo-env.d.ts
 
 # Native
@@ -57,4 +58,3 @@ serviceAccountKey.json
 *.keystore
 *.key
 *.apk
-
