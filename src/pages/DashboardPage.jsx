@@ -1,16 +1,32 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import '../utils/syncfusionScheduleRuntime.js';
+import {
+  Agenda,
+  Day,
+  Inject,
+  Month,
+  ScheduleComponent,
+  ViewsDirective,
+  ViewDirective,
+  Week,
+} from '@syncfusion/ej2-react-schedule';
 import {
   ArrowPathIcon,
+  CalendarDaysIcon,
   ChartBarIcon,
+  CheckCircleIcon,
   CreditCardIcon,
   FireIcon,
   HeartIcon,
+  PrinterIcon,
+  ShareIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext.jsx';
 import { formatDate, getDaysRemaining } from '../utils/date.js';
 import { loadBillingStatus, openCustomerPortal, refreshEntitlements, startCheckout } from '../services/billing.js';
+import { formatWorkoutShareText, loadMemberDashboard } from '../services/memberDashboard.js';
 
 const dashboardNav = [
   { path: '/dashboard', label: 'Overview' },
@@ -31,37 +47,85 @@ export default function DashboardPage({ section = 'overview' }) {
   const { user, userData, refreshUserData, logout } = useAuth();
   const location = useLocation();
   const [billing, setBilling] = useState(null);
+  const [memberDashboard, setMemberDashboard] = useState(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [dashboardError, setDashboardError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!user?.uid) return;
+      setDashboardLoading(true);
+      setDashboardError('');
+      try {
+        const nextDashboard = await loadMemberDashboard(user.uid);
+        if (!cancelled) {
+          setMemberDashboard(nextDashboard);
+        }
+      } catch (err) {
+        console.warn('Member dashboard load failed:', err);
+        if (!cancelled) {
+          setDashboardError('Live workout data could not be loaded. Showing saved account metrics where available.');
+        }
+      } finally {
+        if (!cancelled) {
+          setDashboardLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
   const data = billing || userData || {};
   const trial = data.trial || userData?.trial || {};
   const subscription = data.subscription || userData?.subscription || {};
   const entitlements = data.entitlements || userData?.entitlements || {};
-  const metrics = data.metrics || userData?.metrics || {};
+  const storedMetrics = data.metrics || userData?.metrics || {};
+  const liveSummary = memberDashboard?.summary || {};
   const goal = userData?.goal || {};
-  const daysRemaining = getDaysRemaining(trial.endsAt);
+  const trialDaysRemaining = getDaysRemaining(trial.endsAt);
   const hasAccess = entitlements.premium === true || subscription.status === 'active' || trial.status === 'active';
   const checkoutResult = new URLSearchParams(location.search).get('checkout');
   const displayName = userData?.firstName || userData?.displayName?.split(' ')?.[0] || user?.displayName?.split(' ')?.[0] || 'there';
-  const trialDay = Math.max(1, Number(trial.dayNumber || 1));
+  const currentDayNumber = Math.max(1, Number(liveSummary.currentDayNumber || trial.dayNumber || 1));
+  const totalPlanDays = Number(liveSummary.totalPlanDays || 75);
+  const daysRemaining = liveSummary.totalPlanDays ? liveSummary.daysRemaining : trialDaysRemaining;
   const startWeight = Number(goal.startWeight || 0);
   const targetWeight = Number(goal.targetWeight || 0);
-  const weightRemaining = startWeight && targetWeight ? Math.abs(startWeight - targetWeight).toFixed(1) : null;
+  const currentWeight = liveSummary.currentWeight || startWeight || null;
+  const weightRemaining = currentWeight && targetWeight ? Math.abs(Number(currentWeight) - targetWeight).toFixed(1) : null;
+
+  const metrics = {
+    workoutsCompleted: liveSummary.workoutsCompleted ?? storedMetrics.workoutsCompleted ?? 0,
+    mealsLogged: liveSummary.mealsLogged ?? storedMetrics.mealsLogged ?? 0,
+    streakDays: liveSummary.currentStreak ?? storedMetrics.streakDays ?? 0,
+    compliancePct: liveSummary.compliancePct ?? 0,
+    plannedWorkoutsElapsed: liveSummary.plannedWorkoutsElapsed ?? 0,
+    weeklyCompletedWorkoutDays: liveSummary.weeklyCompletedWorkoutDays ?? 0,
+    weeklyWorkoutDays: liveSummary.weeklyWorkoutDays ?? 0,
+    nutritionDays: liveSummary.nutritionDays ?? 0,
+  };
 
   const cards = useMemo(
     () => [
-      { label: 'Trial days remaining', value: daysRemaining ?? '—', icon: FireIcon },
-      { label: 'Workouts completed', value: metrics.workoutsCompleted || 0, icon: HeartIcon },
-      { label: 'Meals logged', value: metrics.mealsLogged || 0, icon: ChartBarIcon },
-      { label: 'Current streak', value: metrics.streakDays || 0, icon: FireIcon },
+      { label: 'Days remaining', value: daysRemaining ?? '—', icon: FireIcon },
+      { label: 'Workouts completed', value: metrics.workoutsCompleted, icon: HeartIcon },
+      { label: 'Meals logged', value: metrics.mealsLogged, icon: ChartBarIcon },
+      { label: 'Current streak', value: metrics.streakDays, icon: FireIcon },
       {
         label: targetWeight ? 'Goal weight' : 'Current weight',
-        value: targetWeight ? `${targetWeight} lbs` : startWeight ? `${startWeight} lbs` : 'Set goal',
+        value: targetWeight ? `${targetWeight} lbs` : currentWeight ? `${currentWeight} lbs` : 'Set goal',
         icon: ChartBarIcon,
       },
     ],
-    [daysRemaining, metrics.mealsLogged, metrics.streakDays, metrics.workoutsCompleted, startWeight, targetWeight]
+    [currentWeight, daysRemaining, metrics.mealsLogged, metrics.streakDays, metrics.workoutsCompleted, targetWeight]
   );
 
   const refresh = async () => {
@@ -69,6 +133,9 @@ export default function DashboardPage({ section = 'overview' }) {
     setError('');
     try {
       const profile = await refreshUserData?.();
+      if (user?.uid) {
+        setMemberDashboard(await loadMemberDashboard(user.uid));
+      }
       let billingStatus = null;
       try {
         billingStatus = await loadBillingStatus();
@@ -133,7 +200,9 @@ export default function DashboardPage({ section = 'overview' }) {
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
               Good morning, {displayName}.
             </h1>
-            <p className="mt-2 text-gray-600">You're on Day {trialDay} of your SageSet fitness journey.</p>
+            <p className="mt-2 text-gray-600">
+              You're on Day {currentDayNumber}{totalPlanDays ? ` of ${totalPlanDays}` : ''} of your SageSet fitness journey.
+            </p>
           </div>
           <button
             type="button"
@@ -159,6 +228,7 @@ export default function DashboardPage({ section = 'overview' }) {
           <StatusBanner tone="warning" text="Checkout was cancelled. No billing changes were made." />
         ) : null}
         {error ? <StatusBanner tone="error" text={error} /> : null}
+        {dashboardError ? <StatusBanner tone="warning" text={dashboardError} /> : null}
 
         {section === 'billing' ? (
           <BillingPanel
@@ -177,11 +247,11 @@ export default function DashboardPage({ section = 'overview' }) {
             body={`Signed in as ${user?.email || 'SageSet member'}. Account support, privacy, and data deletion tools remain available even if premium access is inactive.`}
           />
         ) : section === 'progress' ? (
-          <InfoPanel icon={ChartBarIcon} title="Progress" body="Long-term progress analytics are connected to premium access. Your saved data remains tied to your account." />
+          <ProgressPanel metrics={metrics} summary={liveSummary} loading={dashboardLoading} />
         ) : section === 'workouts' ? (
-          <InfoPanel icon={HeartIcon} title="Workouts" body="Workout plans and logging are available while your trial or subscription is active." />
+          <WorkoutsPanel dashboard={memberDashboard} loading={dashboardLoading} />
         ) : section === 'nutrition' ? (
-          <InfoPanel icon={ChartBarIcon} title="Nutrition" body="Nutrition analysis is available during trial and premium access, subject to abuse-prevention limits." />
+          <NutritionPanel dashboard={memberDashboard} metrics={metrics} loading={dashboardLoading} />
         ) : (
           <Overview
             cards={cards}
@@ -190,8 +260,9 @@ export default function DashboardPage({ section = 'overview' }) {
             hasAccess={hasAccess}
             displayName={displayName}
             daysRemaining={daysRemaining}
-            streakDays={metrics.streakDays || 0}
+            streakDays={metrics.streakDays}
             weightRemaining={weightRemaining}
+            compliancePct={metrics.compliancePct}
           />
         )}
       </div>
@@ -199,7 +270,7 @@ export default function DashboardPage({ section = 'overview' }) {
   );
 }
 
-function Overview({ cards, trial, subscription, hasAccess, displayName, daysRemaining, streakDays, weightRemaining }) {
+function Overview({ cards, trial, subscription, hasAccess, displayName, daysRemaining, streakDays, weightRemaining, compliancePct }) {
   return (
     <div className="mt-6 space-y-6">
       <div className="rounded-2xl border border-sage-200 bg-white p-6 shadow-sm">
@@ -211,12 +282,13 @@ function Overview({ cards, trial, subscription, hasAccess, displayName, daysRema
             </h2>
             <p className="mt-2 text-gray-600">
               {hasAccess
-                ? "Today's focus: open your mobile app, complete the planned workout, and log one meal so SageSet can keep learning your rhythm."
+                ? "Today's focus: complete the planned workout and log one meal so SageSet can keep learning your rhythm."
                 : 'Refresh billing status or manage billing to continue your plan.'}
             </p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <CoachStat label="Trial" value={`${daysRemaining ?? 0} days remain`} />
+            <div className="mt-5 grid gap-3 sm:grid-cols-4">
+              <CoachStat label="Days left" value={`${daysRemaining ?? 0} remain`} />
               <CoachStat label="Current streak" value={`${streakDays} days`} />
+              <CoachStat label="Compliance" value={`${compliancePct}%`} />
               <CoachStat label="Weight goal" value={weightRemaining ? `${weightRemaining} lbs remaining` : 'Set in account'} />
             </div>
           </div>
@@ -242,6 +314,241 @@ function Overview({ cards, trial, subscription, hasAccess, displayName, daysRema
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ProgressPanel({ metrics, summary, loading }) {
+  return (
+    <SectionShell icon={ChartBarIcon} title="Progress" subtitle="Live totals from the same workout plan data used by the mobile app." loading={loading}>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Stat label="Completed workouts" value={metrics.workoutsCompleted} />
+        <Stat label="Planned workout days" value={metrics.plannedWorkoutsElapsed} />
+        <Stat label="Current streak" value={`${metrics.streakDays} days`} />
+        <Stat label="Compliance" value={`${metrics.compliancePct}%`} />
+      </div>
+      <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5">
+        <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">This week</p>
+        <p className="mt-2 text-2xl font-bold text-gray-900">
+          {summary.weeklyCompletedWorkoutDays || 0} of {summary.weeklyWorkoutDays || 0} planned workout days completed
+        </p>
+      </div>
+    </SectionShell>
+  );
+}
+
+function NutritionPanel({ dashboard, metrics, loading }) {
+  const recentLogs = dashboard?.foodLogs?.slice(0, 5) || [];
+
+  return (
+    <SectionShell icon={ChartBarIcon} title="Nutrition" subtitle="Food logs and meal totals are read from the mobile nutrition history." loading={loading}>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Stat label="Meals logged" value={metrics.mealsLogged} />
+        <Stat label="Nutrition days" value={metrics.nutritionDays} />
+        <Stat label="Latest meal" value={recentLogs[0]?.mealName || 'No meals yet'} />
+      </div>
+      <div className="mt-6 overflow-hidden rounded-xl border border-gray-200">
+        <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-600">Recent food logs</div>
+        {recentLogs.length ? (
+          <div className="divide-y divide-gray-200 bg-white">
+            {recentLogs.map((log) => (
+              <div key={log.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-gray-900">{log.mealName || 'Meal'}</p>
+                  <p className="text-sm text-gray-500">{log.localDate || formatDate(log.createdAt)}</p>
+                </div>
+                <p className="text-sm font-semibold text-gray-700">
+                  {Number(log.calories || 0)} cal | {Number(log.protein || 0)}g protein | {Number(log.carbs || 0)}g carbs | {Number(log.fat || 0)}g fat
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="bg-white px-4 py-6 text-sm text-gray-500">No meals have been logged yet.</p>
+        )}
+      </div>
+    </SectionShell>
+  );
+}
+
+function WorkoutsPanel({ dashboard, loading }) {
+  const days = dashboard?.days || [];
+  const events = dashboard?.calendarEvents || [];
+  const initialDay = days.find((day) => day.date === toLocalDateString(new Date())) || days.find((day) => !day.isRestDay) || days[0] || null;
+  const [selectedDayId, setSelectedDayId] = useState(initialDay?.id || null);
+
+  useEffect(() => {
+    if (!selectedDayId && initialDay?.id) {
+      setSelectedDayId(initialDay.id);
+    }
+  }, [initialDay?.id, selectedDayId]);
+
+  const selectedDay = days.find((day) => day.id === selectedDayId) || initialDay;
+  const selectedDate = selectedDay?.date ? parseLocalDate(selectedDay.date) : new Date();
+
+  const selectDayForDate = (date) => {
+    const localDate = toLocalDateString(date);
+    const match = days.find((day) => day.date === localDate);
+    if (match) setSelectedDayId(match.id);
+  };
+
+  const eventTemplate = (props) => (
+    <div className="sageset-calendar-event" title={props.Subject}>
+      <span>{props.StatusLabel}</span>
+      <strong>{props.Subject}</strong>
+    </div>
+  );
+
+  return (
+    <SectionShell icon={CalendarDaysIcon} title="Workouts" subtitle="View, print, or share your current workout plan from the web." loading={loading}>
+      {days.length ? (
+        <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+          <div className="rounded-xl border border-gray-200 bg-white p-3">
+            <ScheduleComponent
+              width="100%"
+              height="620px"
+              selectedDate={selectedDate}
+              currentView="Month"
+              views={['Month', 'Week', 'Day', 'Agenda']}
+              readonly
+              eventSettings={{
+                dataSource: events,
+                fields: {
+                  id: 'Id',
+                  subject: 'Subject',
+                  startTime: 'StartTime',
+                  endTime: 'EndTime',
+                  isAllDay: 'IsAllDay',
+                },
+                template: eventTemplate,
+              }}
+              eventRendered={(args) => {
+                args.element.style.backgroundColor = args.data.CategoryColor;
+                args.element.style.borderColor = args.data.CategoryColor;
+              }}
+              eventClick={(args) => {
+                if (args.event?.DayId) setSelectedDayId(args.event.DayId);
+              }}
+              cellClick={(args) => selectDayForDate(args.startTime)}
+              popupOpen={(args) => {
+                if (args.type === 'Editor') args.cancel = true;
+              }}
+            >
+              <ViewsDirective>
+                <ViewDirective option="Month" />
+                <ViewDirective option="Week" />
+                <ViewDirective option="Day" />
+                <ViewDirective option="Agenda" />
+              </ViewsDirective>
+              <Inject services={[Month, Week, Day, Agenda]} />
+            </ScheduleComponent>
+          </div>
+          <WorkoutDetail day={selectedDay} />
+        </div>
+      ) : (
+        <p className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-gray-600">
+          No workout plan data is available yet. Create a plan in the mobile app and it will appear here.
+        </p>
+      )}
+    </SectionShell>
+  );
+}
+
+function WorkoutDetail({ day }) {
+  if (!day) return null;
+
+  const handlePrint = () => {
+    const text = formatWorkoutShareText(day);
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=720,height=900');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>SageSet Workout</title>
+          <style>
+            body { font-family: Inter, Arial, sans-serif; padding: 32px; color: #111827; }
+            pre { white-space: pre-wrap; font-size: 16px; line-height: 1.55; }
+          </style>
+        </head>
+        <body><pre>${escapeHtml(text)}</pre></body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const handleShare = async () => {
+    const text = formatWorkoutShareText(day);
+    if (navigator.share) {
+      await navigator.share({ title: 'SageSet Workout', text });
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+  };
+
+  return (
+    <aside className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-sage-700">Selected day</p>
+          <h3 className="mt-1 text-2xl font-bold text-gray-900">Day {day.order || '—'}</h3>
+          <p className="text-sm text-gray-500">{day.date || 'No date'}</p>
+        </div>
+        <StatusPill complete={isDayComplete(day)} rest={day.isRestDay} />
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        <button type="button" onClick={handlePrint} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:border-sage-600 hover:text-sage-700">
+          <PrinterIcon className="h-4 w-4" />
+          Print
+        </button>
+        <button type="button" onClick={handleShare} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:border-sage-600 hover:text-sage-700">
+          <ShareIcon className="h-4 w-4" />
+          Share
+        </button>
+      </div>
+
+      {day.isRestDay ? (
+        <p className="mt-6 rounded-lg bg-gray-50 p-4 text-gray-600">Rest day. Keep the streak protected and recover well.</p>
+      ) : (
+        <div className="mt-6 space-y-4">
+          {(day.workouts || []).map((workout) => (
+            <div key={workout.id} className="rounded-lg border border-gray-200 p-4">
+              <h4 className="font-bold text-gray-900">{workout.name || 'Workout'}</h4>
+              <p className="mt-1 text-sm text-gray-500">
+                {Number(workout.completedExercises || 0)} of {Number(workout.totalExercises || workout.exercises?.length || 0)} exercises complete
+              </p>
+              <div className="mt-3 space-y-2">
+                {(workout.exercises || []).map((exercise) => (
+                  <div key={exercise.id} className="flex items-start justify-between gap-3 rounded-md bg-gray-50 px-3 py-2 text-sm">
+                    <span className="font-semibold text-gray-800">{exercise.name || 'Exercise'}</span>
+                    <span className="text-right text-gray-500">
+                      {[exercise.sets ? `${exercise.sets} sets` : null, exercise.reps ? `${exercise.reps} reps` : null].filter(Boolean).join(' x ') || 'As planned'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function SectionShell({ icon: Icon, title, subtitle, loading, children }) {
+  return (
+    <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Icon className="h-8 w-8 text-sage-700" />
+          <h2 className="mt-4 text-2xl font-bold text-gray-900">{title}</h2>
+          <p className="mt-2 max-w-3xl text-gray-600">{subtitle}</p>
+        </div>
+        {loading ? <span className="rounded-full bg-sage-50 px-3 py-1 text-sm font-semibold text-sage-800">Loading live data...</span> : null}
+      </div>
+      <div className="mt-6">{children}</div>
     </div>
   );
 }
@@ -309,6 +616,21 @@ function Stat({ label, value }) {
   );
 }
 
+function StatusPill({ complete, rest }) {
+  const className = rest
+    ? 'bg-slate-100 text-slate-700'
+    : complete
+      ? 'bg-emerald-100 text-emerald-700'
+      : 'bg-amber-100 text-amber-700';
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${className}`}>
+      <CheckCircleIcon className="h-4 w-4" />
+      {rest ? 'Rest' : complete ? 'Complete' : 'Planned'}
+    </span>
+  );
+}
+
 function StatusBanner({ tone, text }) {
   const classes = {
     success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
@@ -316,4 +638,36 @@ function StatusBanner({ tone, text }) {
     error: 'border-red-200 bg-red-50 text-red-800',
   };
   return <div className={`mt-5 rounded-lg border px-4 py-3 text-sm font-semibold ${classes[tone]}`}>{text}</div>;
+}
+
+function isDayComplete(day) {
+  if (!day) return false;
+  if (day.isRestDay || day.completed || Number(day.completionPct || 0) >= 1) return true;
+  const workouts = Array.isArray(day.workouts) ? day.workouts : [];
+  return workouts.length > 0 && workouts.every((workout) => workout.completed || Number(workout.completedExercises || 0) >= Number(workout.totalExercises || 1));
+}
+
+function parseLocalDate(value) {
+  if (!value) return new Date();
+  const [year, month, day] = String(value).split('-').map(Number);
+  if (year && month && day) return new Date(year, month - 1, day);
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function toLocalDateString(value) {
+  const date = value instanceof Date ? value : parseLocalDate(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }

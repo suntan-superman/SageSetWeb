@@ -1,3 +1,47 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .e-schedule {
+    @apply rounded-xl border-gray-200 font-sans text-gray-800;
+  }
+
+  .e-schedule .e-schedule-toolbar,
+  .e-schedule .e-toolbar-items,
+  .e-schedule .e-month-view,
+  .e-schedule .e-week-view,
+  .e-schedule .e-day-view,
+  .e-schedule .e-agenda-view {
+    @apply bg-white;
+  }
+
+  .e-schedule .e-toolbar .e-toolbar-item.e-active .e-tbar-btn,
+  .e-schedule .e-toolbar .e-toolbar-item .e-tbar-btn:hover,
+  .e-schedule .e-selected-cell,
+  .e-schedule .e-work-cells.e-selected-cell {
+    background-color: #e3e7e3 !important;
+    color: #2c332d !important;
+  }
+
+  .e-schedule .e-current-date,
+  .e-schedule .e-date-header-wrap .e-current-day {
+    color: #16a34a !important;
+  }
+
+  .e-schedule .e-appointment {
+    @apply rounded-md border-0 shadow-none;
+  }
+
+  .sageset-calendar-event {
+    @apply flex h-full min-h-8 flex-col justify-center gap-0.5 overflow-hidden px-2 py-1 text-white;
+  }
+
+  .sageset-calendar-event span {
+    @apply truncate text-[10px] font-bold uppercase tracking-wide opacity-80;
+  }
+
+  .sageset-calendar-event strong {
+    @apply truncate text-xs font-bold;
+  }
+}
