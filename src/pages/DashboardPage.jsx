@@ -431,7 +431,7 @@ function WorkoutsPanel({ dashboard, loading }) {
               }}
               cellClick={(args) => selectDayForDate(args.startTime)}
               popupOpen={(args) => {
-                if (args.type === 'Editor') args.cancel = true;
+                args.cancel = true;
               }}
             >
               <ViewsDirective>
@@ -521,12 +521,7 @@ function WorkoutDetail({ day }) {
               </p>
               <div className="mt-3 space-y-2">
                 {(workout.exercises || []).map((exercise) => (
-                  <div key={exercise.id} className="flex items-start justify-between gap-3 rounded-md bg-gray-50 px-3 py-2 text-sm">
-                    <span className="font-semibold text-gray-800">{exercise.name || 'Exercise'}</span>
-                    <span className="text-right text-gray-500">
-                      {[exercise.sets ? `${exercise.sets} sets` : null, exercise.reps ? `${exercise.reps} reps` : null].filter(Boolean).join(' x ') || 'As planned'}
-                    </span>
-                  </div>
+                  <ExerciseLogDisclosure key={exercise.id} exercise={exercise} />
                 ))}
               </div>
             </div>
@@ -534,6 +529,52 @@ function WorkoutDetail({ day }) {
         </div>
       )}
     </aside>
+  );
+}
+
+function ExerciseLogDisclosure({ exercise }) {
+  const [open, setOpen] = useState(false);
+  const loggedSets = getLoggedSets(exercise);
+  const planned = [exercise.sets ? `${exercise.sets} sets` : null, exercise.reps ? `${exercise.reps} reps` : null].filter(Boolean).join(' x ') || 'As planned';
+
+  return (
+    <div className="rounded-md bg-gray-50 text-sm">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+      >
+        <span className="font-semibold text-gray-800">{exercise.name || 'Exercise'}</span>
+        <span className="flex items-center gap-2 text-right text-gray-500">
+          {planned}
+          <span className="text-xs font-bold text-sage-700">{open ? 'Hide' : 'Details'}</span>
+        </span>
+      </button>
+      {open ? (
+        <div className="border-t border-gray-200 px-3 py-3">
+          {loggedSets.length ? (
+            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+              <div className="grid grid-cols-3 bg-gray-100 px-3 py-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+                <span>Set</span>
+                <span>Weight</span>
+                <span>Reps</span>
+              </div>
+              {loggedSets.map((set) => (
+                <div key={set.set} className="grid grid-cols-3 border-t border-gray-100 px-3 py-2 text-gray-700">
+                  <span>{set.set}</span>
+                  <span>{set.weight != null ? `${set.weight} lbs` : '-'}</span>
+                  <span>{set.reps != null ? set.reps : '-'}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">
+              No logged weight/reps details are synced for this exercise yet. New mobile logs will appear here after the next app build.
+            </p>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -670,4 +711,25 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function getLoggedSets(exercise = {}) {
+  const session = exercise.lastLoggedSession || {};
+  if (Array.isArray(session.loggedSets) && session.loggedSets.length) {
+    return session.loggedSets.map((item, index) => ({
+      set: item.set || index + 1,
+      weight: item.weight ?? null,
+      reps: item.reps ?? null,
+    }));
+  }
+
+  const weights = Array.isArray(session.weights) ? session.weights : Array.isArray(exercise.weights) ? exercise.weights : [];
+  const reps = Array.isArray(session.repsAchieved) ? session.repsAchieved : Array.isArray(exercise.repsAchieved) ? exercise.repsAchieved : [];
+  const count = Math.max(weights.length, reps.length, Number(exercise.completedSets || 0));
+
+  return Array.from({ length: count }, (_unused, index) => ({
+    set: index + 1,
+    weight: weights[index] ?? null,
+    reps: reps[index] ?? null,
+  })).filter((item) => item.weight != null || item.reps != null);
 }

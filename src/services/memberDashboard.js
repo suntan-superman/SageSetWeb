@@ -255,7 +255,12 @@ export function formatWorkoutShareText(day) {
     lines.push('', workout.name || 'Workout');
     (workout.exercises || []).forEach((exercise) => {
       const target = [exercise.sets ? `${exercise.sets} sets` : null, exercise.reps ? `${exercise.reps} reps` : null].filter(Boolean).join(' x ');
+      const session = exercise.lastLoggedSession || {};
+      const loggedSets = Array.isArray(session.loggedSets) ? session.loggedSets : [];
       lines.push(`- ${exercise.name || 'Exercise'}${target ? ` (${target})` : ''}`);
+      loggedSets.forEach((set) => {
+        lines.push(`  Set ${set.set}: ${set.weight ?? '-'} lbs x ${set.reps ?? '-'} reps`);
+      });
     });
   });
 
