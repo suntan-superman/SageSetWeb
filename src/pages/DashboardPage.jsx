@@ -27,6 +27,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { formatDate, getDaysRemaining } from '../utils/date.js';
 import { loadBillingStatus, openCustomerPortal, refreshEntitlements, startCheckout } from '../services/billing.js';
 import { formatWorkoutShareText, loadMemberDashboard } from '../services/memberDashboard.js';
+import { acceptPlanReview, dismissPlanReview, requestPlanReview } from '../services/planReviews.js';
 
 const dashboardNav = [
   { path: '/dashboard', label: 'Overview' },
@@ -249,7 +250,7 @@ export default function DashboardPage({ section = 'overview' }) {
         ) : section === 'progress' ? (
           <ProgressPanel metrics={metrics} summary={liveSummary} loading={dashboardLoading} />
         ) : section === 'workouts' ? (
-          <WorkoutsPanel dashboard={memberDashboard} loading={dashboardLoading} />
+          <WorkoutsPanel dashboard={memberDashboard} loading={dashboardLoading} onReload={refresh} />
         ) : section === 'nutrition' ? (
           <NutritionPanel dashboard={memberDashboard} metrics={metrics} loading={dashboardLoading} />
         ) : (
@@ -371,11 +372,15 @@ function NutritionPanel({ dashboard, metrics, loading }) {
   );
 }
 
-function WorkoutsPanel({ dashboard, loading }) {
+function WorkoutsPanel({ dashboard, loading, onReload }) {
   const days = dashboard?.days || [];
   const events = dashboard?.calendarEvents || [];
   const initialDay = days.find((day) => day.date === toLocalDateString(new Date())) || days.find((day) => !day.isRestDay) || days[0] || null;
   const [selectedDayId, setSelectedDayId] = useState(initialDay?.id || null);
+  const [planReview, setPlanReview] = useState(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewMessage, setReviewMessage] = useState('');
 
   useEffect(() => {
     if (!selectedDayId && initialDay?.id) {
@@ -399,51 +404,110 @@ function WorkoutsPanel({ dashboard, loading }) {
     </div>
   );
 
+  const handleRequestReview = async () => {
+    setReviewBusy(true);
+    setReviewError('');
+    setReviewMessage('');
+    try {
+      const result = await requestPlanReview();
+      setPlanReview(result.review || null);
+      setReviewMessage(result.created ? 'Plan review created.' : result.reason || 'Loaded pending plan review.');
+    } catch (err) {
+      setReviewError(err?.message || 'Unable to create a plan review.');
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
+  const handleAcceptReview = async () => {
+    if (!planReview?.id) return;
+    setReviewBusy(true);
+    setReviewError('');
+    setReviewMessage('');
+    try {
+      const result = await acceptPlanReview(planReview.id);
+      setReviewMessage(`Plan review accepted. ${Number(result.appliedChangeCount || 0)} change(s) applied.`);
+      setPlanReview(null);
+      await onReload?.();
+    } catch (err) {
+      setReviewError(err?.message || 'Unable to accept this plan review.');
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
+  const handleDismissReview = async () => {
+    if (!planReview?.id) return;
+    setReviewBusy(true);
+    setReviewError('');
+    setReviewMessage('');
+    try {
+      await dismissPlanReview(planReview.id);
+      setPlanReview(null);
+      setReviewMessage('Plan review skipped.');
+    } catch (err) {
+      setReviewError(err?.message || 'Unable to skip this plan review.');
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
   return (
     <SectionShell icon={CalendarDaysIcon} title="Workouts" subtitle="View, print, or share your current workout plan from the web." loading={loading}>
       {days.length ? (
-        <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-          <div className="rounded-xl border border-gray-200 bg-white p-3">
-            <ScheduleComponent
-              width="100%"
-              height="620px"
-              selectedDate={selectedDate}
-              currentView="Month"
-              views={['Month', 'Week', 'Day', 'Agenda']}
-              readonly
-              eventSettings={{
-                dataSource: events,
-                fields: {
-                  id: 'Id',
-                  subject: 'Subject',
-                  startTime: 'StartTime',
-                  endTime: 'EndTime',
-                  isAllDay: 'IsAllDay',
-                },
-                template: eventTemplate,
-              }}
-              eventRendered={(args) => {
-                args.element.style.backgroundColor = args.data.CategoryColor;
-                args.element.style.borderColor = args.data.CategoryColor;
-              }}
-              eventClick={(args) => {
-                if (args.event?.DayId) setSelectedDayId(args.event.DayId);
-              }}
-              cellClick={(args) => selectDayForDate(args.startTime)}
-              popupOpen={(args) => {
-                args.cancel = true;
-              }}
-            >
-              <ViewsDirective>
-                <ViewDirective option="Month" />
-                <ViewDirective option="Week" />
-                <ViewDirective option="Day" />
-                <ViewDirective option="Agenda" />
-              </ViewsDirective>
-              <Inject services={[Month, Week, Day, Agenda]} />
-            </ScheduleComponent>
+        <div className="space-y-6">
+          <PlanReviewPanel
+            review={planReview}
+            busy={reviewBusy}
+            error={reviewError}
+            message={reviewMessage}
+            onRequest={handleRequestReview}
+            onAccept={handleAcceptReview}
+            onDismiss={handleDismissReview}
+          />
+          <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+            <div className="rounded-xl border border-gray-200 bg-white p-3">
+              <ScheduleComponent
+                width="100%"
+                height="620px"
+                selectedDate={selectedDate}
+                currentView="Month"
+                views={['Month', 'Week', 'Day', 'Agenda']}
+                readonly
+                eventSettings={{
+                  dataSource: events,
+                  fields: {
+                    id: 'Id',
+                    subject: 'Subject',
+                    startTime: 'StartTime',
+                    endTime: 'EndTime',
+                    isAllDay: 'IsAllDay',
+                  },
+                  template: eventTemplate,
+                }}
+                eventRendered={(args) => {
+                  args.element.style.backgroundColor = args.data.CategoryColor;
+                  args.element.style.borderColor = args.data.CategoryColor;
+                }}
+                eventClick={(args) => {
+                  if (args.event?.DayId) setSelectedDayId(args.event.DayId);
+                }}
+                cellClick={(args) => selectDayForDate(args.startTime)}
+                popupOpen={(args) => {
+                  args.cancel = true;
+                }}
+              >
+                <ViewsDirective>
+                  <ViewDirective option="Month" />
+                  <ViewDirective option="Week" />
+                  <ViewDirective option="Day" />
+                  <ViewDirective option="Agenda" />
+                </ViewsDirective>
+                <Inject services={[Month, Week, Day, Agenda]} />
+              </ScheduleComponent>
+            </div>
+            <WorkoutDetail day={selectedDay} />
           </div>
-          <WorkoutDetail day={selectedDay} />
         </div>
       ) : (
         <p className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-gray-600">
@@ -451,6 +515,108 @@ function WorkoutsPanel({ dashboard, loading }) {
         </p>
       )}
     </SectionShell>
+  );
+}
+
+function PlanReviewPanel({ review, busy, error, message, onRequest, onAccept, onDismiss }) {
+  const changes = Array.isArray(review?.proposedChanges) ? review.proposedChanges : [];
+  const actionableChanges = changes.filter((change) => change.scope !== 'plan' && change.type !== 'hold_steady');
+
+  return (
+    <div className="rounded-xl border border-sage-200 bg-sage-50 p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-sage-700">Plan review</p>
+          <h3 className="mt-1 text-xl font-bold text-gray-900">SageSet can review your recent performance.</h3>
+          <p className="mt-2 max-w-3xl text-sm text-gray-600">
+            Recommended changes are shown before anything is applied. Approvals only update future incomplete workouts.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRequest}
+          disabled={busy}
+          className="rounded-lg bg-sage-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sage-800 disabled:opacity-60"
+        >
+          {busy ? 'Working...' : review ? 'Refresh review' : 'Review plan'}
+        </button>
+      </div>
+
+      {message ? <p className="mt-4 rounded-lg border border-sage-200 bg-white px-3 py-2 text-sm font-semibold text-sage-800">{message}</p> : null}
+      {error ? <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p> : null}
+
+      {review ? (
+        <div className="mt-5 rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {formatRecommendationType(review.recommendationType)} | {review.weekStart || 'week'} to {review.weekEnd || 'now'}
+              </p>
+              <p className="mt-2 text-base font-semibold text-gray-900">{review.summary || 'Plan review is ready.'}</p>
+            </div>
+            <StatusPill complete={false} rest={false} />
+          </div>
+
+          {Array.isArray(review.rationale) && review.rationale.length ? (
+            <ul className="mt-4 space-y-1 text-sm text-gray-600">
+              {review.rationale.map((item) => (
+                <li key={item}>- {item}</li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className="mt-4 space-y-2">
+            {changes.length ? (
+              changes.map((change) => <ProposedChangeRow key={change.changeId || `${change.type}-${change.exerciseId}`} change={change} />)
+            ) : (
+              <p className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600">No workout changes are recommended right now.</p>
+            )}
+          </div>
+
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={busy}
+              className="rounded-lg bg-sage-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sage-800 disabled:opacity-60"
+            >
+              {actionableChanges.length ? 'Approve changes' : 'Accept review'}
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              disabled={busy}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:border-sage-600 hover:text-sage-700 disabled:opacity-60"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ProposedChangeRow({ change }) {
+  const before = formatChangeValue(change.before);
+  const after = formatChangeValue(change.after);
+  const isPlanLevel = change.scope === 'plan' || change.type === 'hold_steady';
+
+  return (
+    <div className="rounded-lg bg-gray-50 px-3 py-3 text-sm">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <p className="font-semibold text-gray-900">
+          {isPlanLevel ? 'Plan recommendation' : `${change.exerciseName || 'Exercise'}${change.workoutName ? ` | ${change.workoutName}` : ''}`}
+        </p>
+        <p className="text-xs font-bold uppercase tracking-wide text-sage-700">{formatRecommendationType(change.type)}</p>
+      </div>
+      {!isPlanLevel ? (
+        <p className="mt-1 text-gray-600">
+          {before || 'Current target'} {'->'} {after || 'Updated target'}
+        </p>
+      ) : null}
+      {change.reason ? <p className="mt-1 text-gray-500">{change.reason}</p> : null}
+    </div>
   );
 }
 
@@ -732,4 +898,28 @@ function getLoggedSets(exercise = {}) {
     weight: weights[index] ?? null,
     reps: reps[index] ?? null,
   })).filter((item) => item.weight != null || item.reps != null);
+}
+
+function formatRecommendationType(value) {
+  const labels = {
+    progress_up: 'Progress up',
+    hold_steady: 'Hold steady',
+    simplify: 'Simplify',
+    recovery_week: 'Recovery week',
+    increase_reps: 'Increase reps',
+    decrease_reps: 'Decrease reps',
+    increase_sets: 'Increase sets',
+    decrease_sets: 'Decrease sets',
+    add_accessory_exercise: 'Add exercise',
+    remove_accessory_exercise: 'Remove exercise',
+  };
+  return labels[value] || String(value || 'Review').replaceAll('_', ' ');
+}
+
+function formatChangeValue(value = {}) {
+  if (!value || typeof value !== 'object') return '';
+  const parts = [];
+  if (value.sets != null) parts.push(`${value.sets} sets`);
+  if (value.reps != null) parts.push(`${value.reps} reps`);
+  return parts.join(' x ');
 }
