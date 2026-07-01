@@ -88,11 +88,16 @@ export default function DashboardPage({ section = 'overview' }) {
   const trial = data.trial || userData?.trial || {};
   const subscription = data.subscription || userData?.subscription || {};
   const entitlements = data.entitlements || userData?.entitlements || {};
+  const accountFlags = data.accountFlags || userData?.accountFlags || {};
   const storedMetrics = data.metrics || userData?.metrics || {};
   const liveSummary = memberDashboard?.summary || {};
   const goal = userData?.goal || {};
   const trialDaysRemaining = getDaysRemaining(trial.endsAt);
-  const hasAccess = entitlements.premium === true || subscription.status === 'active' || trial.status === 'active';
+  const hasAccess =
+    accountFlags.demo === true ||
+    entitlements.premium === true ||
+    subscription.status === 'active' ||
+    trial.status === 'active';
   const checkoutResult = new URLSearchParams(location.search).get('checkout');
   const displayName = userData?.firstName || userData?.displayName?.split(' ')?.[0] || user?.displayName?.split(' ')?.[0] || 'there';
   const currentDayNumber = Math.max(1, Number(liveSummary.currentDayNumber || trial.dayNumber || 1));

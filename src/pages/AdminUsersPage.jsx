@@ -512,6 +512,7 @@ export default function AdminUsersPage() {
                         )}
                         {item.hasPushToken ? <StatusChip tone="amber">Push ready</StatusChip> : null}
                         {item.emailVerified ? <StatusChip tone="emerald">Verified</StatusChip> : null}
+                        {item.isDemoAccount ? <StatusChip tone="emerald">Demo</StatusChip> : null}
                         {item.authRecordMissing ? <StatusChip tone="rose">Auth missing</StatusChip> : null}
                       </div>
 
@@ -579,6 +580,9 @@ export default function AdminUsersPage() {
                           ) : (
                             <StatusChip>No push token</StatusChip>
                           )}
+                          {selectedDetail.profile?.isDemoAccount ? (
+                            <StatusChip tone="emerald">Demo access</StatusChip>
+                          ) : null}
                         </div>
 
                         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -662,16 +666,21 @@ export default function AdminUsersPage() {
 
                     <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-6">
                       <h3 className="text-lg font-semibold text-white">Access Controls</h3>
-                      <div className="mt-4 grid gap-3 md:grid-cols-3">
+                      <div className="mt-4 grid gap-3 md:grid-cols-4">
                         <DetailRow label="Trial" value={selectedDetail.rawUserData?.trial?.status || 'Not set'} />
                         <DetailRow label="Subscription" value={selectedDetail.rawUserData?.subscription?.status || 'Not set'} />
                         <DetailRow label="Source" value={selectedDetail.rawUserData?.subscription?.source || 'Not set'} />
+                        <DetailRow label="Demo Account" value={selectedDetail.rawUserData?.accountFlags?.demo ? 'Yes' : 'No'} />
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {[
                           ['extend_trial_7', 'Extend trial 7 days'],
                           ['grant_premium_7', 'Grant premium 7 days'],
                           ['revoke_premium', 'Revoke premium'],
+                          [
+                            'toggle_demo_account',
+                            selectedDetail.rawUserData?.accountFlags?.demo ? 'Disable demo account' : 'Enable demo account',
+                          ],
                           ['toggle_arkit_beta', 'Toggle AR beta'],
                           ['recalculate', 'Recalculate'],
                         ].map(([action, label]) => (
