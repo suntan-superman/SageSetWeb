@@ -27,7 +27,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { formatDate, getDaysRemaining } from '../utils/date.js';
 import { loadBillingStatus, openCustomerPortal, refreshEntitlements, startCheckout } from '../services/billing.js';
 import { formatWorkoutShareText, loadMemberDashboard } from '../services/memberDashboard.js';
-import { acceptPlanReview, dismissPlanReview, requestPlanReview } from '../services/planReviews.js';
+import { acceptPlanReview, dismissPlanReview, loadRecentPlanReviews, requestPlanReview } from '../services/planReviews.js';
 
 const dashboardNav = [
   { path: '/dashboard', label: 'Overview' },
@@ -373,11 +373,13 @@ function NutritionPanel({ dashboard, metrics, loading }) {
 }
 
 function WorkoutsPanel({ dashboard, loading, onReload }) {
+  const { user } = useAuth();
   const days = dashboard?.days || [];
   const events = dashboard?.calendarEvents || [];
   const initialDay = days.find((day) => day.date === toLocalDateString(new Date())) || days.find((day) => !day.isRestDay) || days[0] || null;
   const [selectedDayId, setSelectedDayId] = useState(initialDay?.id || null);
   const [planReview, setPlanReview] = useState(null);
+  const [latestPlanReview, setLatestPlanReview] = useState(null);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [reviewMessage, setReviewMessage] = useState('');
@@ -387,6 +389,24 @@ function WorkoutsPanel({ dashboard, loading, onReload }) {
       setSelectedDayId(initialDay.id);
     }
   }, [initialDay?.id, selectedDayId]);
+
+  const loadReviewStatus = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const reviews = await loadRecentPlanReviews(user.uid, 5);
+      setLatestPlanReview(reviews[0] || null);
+      const pending = reviews.find((review) => review.status === 'pending');
+      if (pending) {
+        setPlanReview(pending);
+      }
+    } catch (err) {
+      console.warn('Plan review status load failed:', err);
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    loadReviewStatus();
+  }, [loadReviewStatus]);
 
   const selectedDay = days.find((day) => day.id === selectedDayId) || initialDay;
   const selectedDate = selectedDay?.date ? parseLocalDate(selectedDay.date) : new Date();
@@ -411,7 +431,12 @@ function WorkoutsPanel({ dashboard, loading, onReload }) {
     try {
       const result = await requestPlanReview();
       setPlanReview(result.review || null);
-      setReviewMessage(result.created ? 'Plan review created.' : result.reason || 'Loaded pending plan review.');
+      if (result.review) {
+        setLatestPlanReview(result.review);
+      } else {
+        await loadReviewStatus();
+      }
+      setReviewMessage(result.created ? 'Plan review created.' : result.reason || 'No pending review right now.');
     } catch (err) {
       setReviewError(err?.message || 'Unable to create a plan review.');
     } finally {
@@ -428,6 +453,7 @@ function WorkoutsPanel({ dashboard, loading, onReload }) {
       const result = await acceptPlanReview(planReview.id);
       setReviewMessage(`Plan review accepted. ${Number(result.appliedChangeCount || 0)} change(s) applied.`);
       setPlanReview(null);
+      await loadReviewStatus();
       await onReload?.();
     } catch (err) {
       setReviewError(err?.message || 'Unable to accept this plan review.');
@@ -444,6 +470,7 @@ function WorkoutsPanel({ dashboard, loading, onReload }) {
     try {
       await dismissPlanReview(planReview.id);
       setPlanReview(null);
+      await loadReviewStatus();
       setReviewMessage('Plan review skipped.');
     } catch (err) {
       setReviewError(err?.message || 'Unable to skip this plan review.');
@@ -458,6 +485,7 @@ function WorkoutsPanel({ dashboard, loading, onReload }) {
         <div className="space-y-6">
           <PlanReviewPanel
             review={planReview}
+            latestReview={latestPlanReview}
             busy={reviewBusy}
             error={reviewError}
             message={reviewMessage}
@@ -518,7 +546,7 @@ function WorkoutsPanel({ dashboard, loading, onReload }) {
   );
 }
 
-function PlanReviewPanel({ review, busy, error, message, onRequest, onAccept, onDismiss }) {
+function PlanReviewPanel({ review, latestReview, busy, error, message, onRequest, onAccept, onDismiss }) {
   const changes = Array.isArray(review?.proposedChanges) ? review.proposedChanges : [];
   const actionableChanges = changes.filter((change) => change.scope !== 'plan' && change.type !== 'hold_steady');
 
@@ -544,6 +572,14 @@ function PlanReviewPanel({ review, busy, error, message, onRequest, onAccept, on
 
       {message ? <p className="mt-4 rounded-lg border border-sage-200 bg-white px-3 py-2 text-sm font-semibold text-sage-800">{message}</p> : null}
       {error ? <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p> : null}
+
+      {!review && latestReview ? (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700">
+          <span className="font-bold text-gray-900">Latest review:</span>{' '}
+          {formatReviewStatus(latestReview.status)}{latestReview.weekStart ? ` for week of ${latestReview.weekStart}` : ''}.
+          {latestReview.status === 'accepted' ? ' No pending changes are waiting for approval.' : null}
+        </div>
+      ) : null}
 
       {review ? (
         <div className="mt-5 rounded-xl border border-gray-200 bg-white p-4">
@@ -914,6 +950,16 @@ function formatRecommendationType(value) {
     remove_accessory_exercise: 'Remove exercise',
   };
   return labels[value] || String(value || 'Review').replaceAll('_', ' ');
+}
+
+function formatReviewStatus(value) {
+  const labels = {
+    pending: 'pending approval',
+    accepted: 'accepted',
+    dismissed: 'skipped',
+    expired: 'expired',
+  };
+  return labels[value] || String(value || 'not started');
 }
 
 function formatChangeValue(value = {}) {

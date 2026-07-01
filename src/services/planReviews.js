@@ -1,5 +1,6 @@
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../config/firebase.js';
+import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
+import { db, functions } from '../config/firebase.js';
 
 const requestPlanReviewCallable = httpsCallable(functions, 'requestPlanReview');
 const acceptPlanReviewCallable = httpsCallable(functions, 'acceptPlanReview');
@@ -24,6 +25,18 @@ export async function acceptPlanReview(reviewId) {
 export async function dismissPlanReview(reviewId) {
   const result = await dismissPlanReviewCallable({ reviewId });
   return result.data || {};
+}
+
+export async function loadRecentPlanReviews(uid, maxCount = 5) {
+  if (!uid) return [];
+  const snapshot = await getDocs(
+    query(
+      collection(db, 'users', uid, 'planAdjustmentReviews'),
+      orderBy('createdAt', 'desc'),
+      limit(Math.max(1, Math.min(10, Number(maxCount) || 5)))
+    )
+  );
+  return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
 }
 
 function toLocalDateString(value) {
