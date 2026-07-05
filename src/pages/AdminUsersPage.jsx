@@ -249,6 +249,7 @@ export default function AdminUsersPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+  const [hiddenDuplicateOrphans, setHiddenDuplicateOrphans] = useState(0);
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -342,6 +343,7 @@ export default function AdminUsersPage() {
       const result = await listUsersForAdmin(250);
       const nextUsers = Array.isArray(result?.users) ? result.users : [];
       setUsers(nextUsers);
+      setHiddenDuplicateOrphans(Number(result?.hiddenDuplicateOrphans || 0));
 
       const preferredUserId =
         preserveSelection && nextUsers.some((item) => item.uid === selectedUserId)
@@ -449,6 +451,11 @@ export default function AdminUsersPage() {
                   <p className="mt-1 text-sm text-gray-400">
                     {filteredUsers.length} of {users.length} shown
                   </p>
+                  {hiddenDuplicateOrphans > 0 ? (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {hiddenDuplicateOrphans} duplicate auth-missing profile{hiddenDuplicateOrphans === 1 ? '' : 's'} hidden
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   type="button"

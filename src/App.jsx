@@ -105,6 +105,36 @@ const infoRoutes = [
   '/account/billing',
 ];
 
+const signedInMarketingDestinations = {
+  '/features': '/dashboard',
+  '/fitness-ai-coach': '/dashboard',
+  '/nutrition': '/dashboard/nutrition',
+  '/pricing': '/dashboard/billing',
+  '/download': '/dashboard',
+  '/workout-plans': '/dashboard/workouts',
+  '/muscle-building': '/dashboard/workouts',
+  '/weight-loss': '/dashboard/progress',
+  '/fitness-challenges': '/dashboard/progress',
+};
+
+function MarketingRoute({ path }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-sage-300 text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (user && signedInMarketingDestinations[path]) {
+    return <Navigate to={signedInMarketingDestinations[path]} replace />;
+  }
+
+  return <MarketingLandingPage path={path} />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -179,7 +209,7 @@ export default function App() {
           <Route
             key={path}
             path={path}
-            element={<Layout><MarketingLandingPage path={path} /></Layout>}
+            element={<Layout><MarketingRoute path={path} /></Layout>}
           />
         ))}
         {infoRoutes.map((path) => (

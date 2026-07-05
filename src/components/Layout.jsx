@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { COPYRIGHT_NOTICE } from '../constants/appInfo';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const navLinkClass = ({ isActive }) =>
   [
@@ -8,12 +9,31 @@ const navLinkClass = ({ isActive }) =>
   ].join(' ');
 
 export default function Layout({ children }) {
+  const { user } = useAuth();
+  const isSignedIn = Boolean(user);
+  const homePath = isSignedIn ? '/dashboard' : '/';
+  const navItems = isSignedIn
+    ? [
+        { to: '/dashboard', label: 'Dashboard', end: true },
+        { to: '/dashboard/workouts', label: 'Workouts' },
+        { to: '/dashboard/nutrition', label: 'Nutrition' },
+        { to: '/dashboard/billing', label: 'Billing' },
+        { to: '/dashboard/account', label: 'Account' },
+      ]
+    : [
+        { to: '/features', label: 'Features' },
+        { to: '/nutrition', label: 'Nutrition' },
+        { to: '/pricing', label: 'Pricing' },
+        { to: '/download', label: 'Download' },
+        { to: '/login', label: 'Sign in' },
+      ];
+
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased text-gray-800 bg-white">
       {/* Sticky, minimal navigation */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-content mx-auto px-6 py-4 flex items-center justify-between">
-          <NavLink to="/" className="flex items-center gap-3">
+          <NavLink to={homePath} className="flex items-center gap-3">
             <img
               src="/favicon.png"
               alt="SageSet"
@@ -24,21 +44,11 @@ export default function Layout({ children }) {
           </NavLink>
 
           <nav className="hidden items-center gap-6 sm:flex">
-            <NavLink to="/features" className={navLinkClass}>
-              Features
-            </NavLink>
-            <NavLink to="/nutrition" className={navLinkClass}>
-              Nutrition
-            </NavLink>
-            <NavLink to="/pricing" className={navLinkClass}>
-              Pricing
-            </NavLink>
-            <NavLink to="/download" className={navLinkClass}>
-              Download
-            </NavLink>
-            <NavLink to="/login" className={navLinkClass}>
-              Sign in
-            </NavLink>
+            {navItems.map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         </div>
       </header>
@@ -55,7 +65,7 @@ export default function Layout({ children }) {
             <span>{COPYRIGHT_NOTICE}</span>
           </div>
           <div className="flex items-center gap-6">
-            <NavLink to="/pricing" className="hover:text-sage-700 transition-colors">
+            <NavLink to={isSignedIn ? '/dashboard/billing' : '/pricing'} className="hover:text-sage-700 transition-colors">
               Pricing
             </NavLink>
             <NavLink to="/privacy" className="hover:text-sage-700 transition-colors">
