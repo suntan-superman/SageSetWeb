@@ -16,11 +16,11 @@ const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
 const pageContent = {
   '/fitness-ai-coach': {
     eyebrow: 'AI fitness coach',
-    title: 'A calmer coach for stronger weeks.',
-    body: 'SageSet helps you turn goals into practical workout plans, daily check-ins, and momentum you can actually see.',
+    title: 'AI coaching that keeps you in control.',
+    body: 'SageSet turns goals, workout history, and weekly performance into practical recommendations you can review before anything changes.',
     icon: SparklesIcon,
     event: 'ViewContent',
-    bullets: ['Personalized plan generation', 'Daily readiness check-ins', 'Progress-aware coaching foundation'],
+    bullets: ['Personalized plan generation', 'Weekly performance reviews', 'User-approved recommendations'],
   },
   '/workout-plans': {
     eyebrow: 'Workout plans',
@@ -55,17 +55,17 @@ const pageContent = {
     bullets: ['Photo-based estimates', 'Protein, carbs, fat, and calories', 'Daily safeguards against overuse'],
   },
   '/fitness-challenges': {
-    eyebrow: 'Fitness challenges',
-    title: 'Challenges that reward real consistency.',
-    body: 'SageSet is preparing AR workout challenges and habit-based streaks for users who want extra motivation.',
+    eyebrow: 'Consistency',
+    title: 'Consistency that keeps you moving.',
+    body: 'SageSet helps you protect streaks, review weekly progress, and turn daily effort into visible momentum.',
     icon: BoltIcon,
     event: 'ViewContent',
-    bullets: ['Streak-aware progress', 'Challenge-ready data model', 'Premium feature controls'],
+    bullets: ['Streak-aware progress', 'Weekly review rhythm', 'Habit-focused momentum'],
   },
   '/features': {
     eyebrow: 'Features',
     title: 'Everything needed for a cleaner fitness loop.',
-    body: 'Plans, workouts, nutrition, weigh-ins, streaks, reminders, and admin controls are coming together in one app.',
+    body: 'Plans, workouts, nutrition, weigh-ins, streaks, reminders, and coaching reviews live in one focused training system.',
     icon: CheckCircleIcon,
     event: 'ViewContent',
     bullets: ['Workout planning', 'Nutrition estimates', 'Streaks and check-ins'],

@@ -38,10 +38,10 @@ export default function HomePage() {
               <span>No credit card required</span>
             </div>
             <h1 className="mt-5 text-4xl font-bold leading-tight tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-              Your AI Personal Trainer.
+              Train with purpose. Adapt with intelligence.
             </h1>
             <p className="mt-6 text-xl leading-relaxed text-gray-600">
-              Personalized workouts, nutrition tracking, and intelligent coaching that adapts as you improve.
+              SageSet builds structured workout plans, tracks performance, estimates meals, and recommends smart adjustments before future workouts change.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <a
@@ -63,7 +63,7 @@ export default function HomePage() {
                 </a>
               ) : null}
             </div>
-            <p className="mt-3 text-sm font-medium text-gray-500">No credit card required. Available on iPhone and Android.</p>
+            <p className="mt-3 text-sm font-medium text-gray-500">AI recommends. You decide. No credit card required. Available on iPhone and Android.</p>
             <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <TrustPill icon={SparklesIcon} label="AI Powered" />
               <TrustPill icon={CheckCircleIcon} label="Personalized Plans" />
@@ -92,7 +92,7 @@ export default function HomePage() {
             <ValueCard
               icon={SparklesIcon}
               title="AI coach guidance"
-              description="See what to do next with coaching prompts that keep your plan, meals, and progress connected."
+              description="Review recommendations that connect your plan, meals, and progress while keeping you in control."
             />
           </div>
         </div>
