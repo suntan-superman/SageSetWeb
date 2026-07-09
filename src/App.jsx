@@ -8,6 +8,7 @@ import CompleteProfilePage from './pages/CompleteProfilePage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
 import VerifySmsPage from './pages/VerifySmsPage.jsx';
+import AuthActionPage from './pages/AuthActionPage.jsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx';
 import SupportPage from './pages/SupportPage.jsx';
@@ -116,7 +117,6 @@ const signedInMarketingDestinations = {
   '/fitness-ai-coach': '/dashboard',
   '/nutrition': '/dashboard/nutrition',
   '/pricing': '/dashboard/billing',
-  '/download': '/dashboard',
   '/workout-plans': '/dashboard/workouts',
   '/muscle-building': '/dashboard/workouts',
   '/weight-loss': '/dashboard/progress',
@@ -185,6 +185,7 @@ export default function App() {
         <Route path="/" element={<Layout><HomePage /></Layout>} />
         <Route path="/login" element={<Layout><AuthPage mode="login" /></Layout>} />
         <Route path="/signup" element={<Layout><AuthPage mode="signup" /></Layout>} />
+        <Route path="/auth/action" element={<Layout><AuthActionPage /></Layout>} />
         <Route path="/verify-email" element={<Layout><VerifyEmailPage /></Layout>} />
         <Route path="/complete-profile" element={<Layout><CompleteProfilePage /></Layout>} />
         <Route path="/verify-sms" element={<Layout><VerifySmsPage /></Layout>} />

@@ -343,7 +343,7 @@ function MobileAppNextStep() {
             mobile app will guide you through building your first workout plan.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:min-w-56">
           {APP_STORE_URL ? (
             <a
               href={APP_STORE_URL}
@@ -365,12 +365,13 @@ function MobileAppNextStep() {
             </a>
           ) : null}
           {!APP_STORE_URL && !GOOGLE_PLAY_URL ? (
-            <Link
-              to="/download"
-              className="rounded-lg bg-sage-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-sage-800"
-            >
-              Download SageSet
-            </Link>
+            <div className="rounded-lg border border-sage-200 bg-white px-4 py-3 text-sm text-gray-700">
+              <p className="font-bold text-gray-900">Mobile app access</p>
+              <p className="mt-1">
+                SageSet is being moved to the Workside Software developer accounts. Use your current test build for now,
+                then sign in with this same account after the App Store and Google Play listings are live.
+              </p>
+            </div>
           ) : null}
         </div>
       </div>
