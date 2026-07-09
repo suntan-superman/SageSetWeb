@@ -7,7 +7,6 @@ import {
   signInWithEmailAndPassword, 
   signOut,
   sendPasswordResetEmail,
-  sendEmailVerification,
   updateProfile,
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
@@ -202,7 +201,7 @@ export function AuthProvider({ children }) {
       })
     );
 
-    await sendEmailVerification(userCredential.user);
+    await sendSageSetVerificationEmail();
 
     try {
       const sendSmsConfirmation = httpsCallable(functions, 'sendSmsConfirmation');
@@ -265,6 +264,16 @@ export function AuthProvider({ children }) {
   const refreshUserData = async () => {
     if (!auth.currentUser) return null;
     return await loadUserData(auth.currentUser.uid);
+  };
+
+  const sendSageSetVerificationEmail = async () => {
+    if (!auth.currentUser) {
+      throw new Error('No signed-in user.');
+    }
+    await auth.currentUser.getIdToken(true);
+    const sendVerificationEmail = httpsCallable(functions, 'sendVerificationEmail');
+    const result = await sendVerificationEmail({});
+    return result.data;
   };
 
   const completeProfileSetup = async ({ displayName = '', phone = '', smsOptIn = false }) => {
@@ -342,7 +351,7 @@ export function AuthProvider({ children }) {
     if (!auth.currentUser) {
       throw new Error('No signed-in user.');
     }
-    await sendEmailVerification(auth.currentUser);
+    await sendSageSetVerificationEmail();
   };
 
   const resendSmsVerification = async () => {
