@@ -29,6 +29,9 @@ import { loadBillingStatus, openCustomerPortal, refreshEntitlements, startChecko
 import { formatWorkoutShareText, loadMemberDashboard } from '../services/memberDashboard.js';
 import { acceptPlanReview, dismissPlanReview, loadRecentPlanReviews, requestPlanReview } from '../services/planReviews.js';
 
+const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
+const GOOGLE_PLAY_URL = import.meta.env.VITE_GOOGLE_PLAY_URL || '';
+
 const dashboardNav = [
   { path: '/dashboard', label: 'Overview' },
   { path: '/dashboard/progress', label: 'Progress' },
@@ -269,6 +272,8 @@ export default function DashboardPage({ section = 'overview' }) {
             streakDays={metrics.streakDays}
             weightRemaining={weightRemaining}
             compliancePct={metrics.compliancePct}
+            hasPlan={Boolean(memberDashboard?.plan)}
+            loading={dashboardLoading}
           />
         )}
       </div>
@@ -276,9 +281,11 @@ export default function DashboardPage({ section = 'overview' }) {
   );
 }
 
-function Overview({ cards, trial, subscription, hasAccess, displayName, daysRemaining, streakDays, weightRemaining, compliancePct }) {
+function Overview({ cards, trial, subscription, hasAccess, displayName, daysRemaining, streakDays, weightRemaining, compliancePct, hasPlan, loading }) {
   return (
     <div className="mt-6 space-y-6">
+      {!loading && !hasPlan ? <MobileAppNextStep /> : null}
+
       <div className="rounded-2xl border border-sage-200 bg-white p-6 shadow-sm">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
@@ -319,6 +326,53 @@ function Overview({ cards, trial, subscription, hasAccess, displayName, daysRema
             <p className="mt-1 text-sm font-medium text-gray-500">{card.label}</p>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function MobileAppNextStep() {
+  return (
+    <div className="rounded-2xl border border-sage-200 bg-sage-50 p-6 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-sage-700">Next step</p>
+          <h2 className="mt-2 text-2xl font-bold text-gray-900">Create your workout plan in the mobile app.</h2>
+          <p className="mt-2 max-w-3xl text-gray-600">
+            Your web account is ready. Download SageSet on your phone, sign in with the same account, and the
+            mobile app will guide you through building your first workout plan.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {APP_STORE_URL ? (
+            <a
+              href={APP_STORE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg bg-sage-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-sage-800"
+            >
+              Download for iPhone
+            </a>
+          ) : null}
+          {GOOGLE_PLAY_URL ? (
+            <a
+              href={GOOGLE_PLAY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg bg-sage-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-sage-800"
+            >
+              Download for Android
+            </a>
+          ) : null}
+          {!APP_STORE_URL && !GOOGLE_PLAY_URL ? (
+            <Link
+              to="/download"
+              className="rounded-lg bg-sage-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-sage-800"
+            >
+              Download SageSet
+            </Link>
+          ) : null}
+        </div>
       </div>
     </div>
   );

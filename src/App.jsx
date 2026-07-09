@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage.jsx';
 import MarketingLandingPage from './pages/MarketingLandingPage.jsx';
 import SimpleInfoPage from './pages/SimpleInfoPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
+import CompleteProfilePage from './pages/CompleteProfilePage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
 import VerifySmsPage from './pages/VerifySmsPage.jsx';
@@ -60,6 +61,11 @@ function ProtectedMemberRoute({ children }) {
   }
 
   const contact = userData?.contact || {};
+  const profileSetupComplete = Boolean((userData?.displayName || userData?.firstName) && (contact.phone || userData?.phone) && contact.smsOptIn === true);
+  if (user.emailVerified && !profileSetupComplete && location.pathname !== '/complete-profile') {
+    return <Navigate to="/complete-profile" replace />;
+  }
+
   const needsSmsVerification = contact.smsOptIn === true && contact.smsVerificationStatus !== 'verified';
   if (user.emailVerified && needsSmsVerification && location.pathname !== '/verify-sms') {
     return <Navigate to="/verify-sms" replace />;
@@ -180,6 +186,7 @@ export default function App() {
         <Route path="/login" element={<Layout><AuthPage mode="login" /></Layout>} />
         <Route path="/signup" element={<Layout><AuthPage mode="signup" /></Layout>} />
         <Route path="/verify-email" element={<Layout><VerifyEmailPage /></Layout>} />
+        <Route path="/complete-profile" element={<Layout><CompleteProfilePage /></Layout>} />
         <Route path="/verify-sms" element={<Layout><VerifySmsPage /></Layout>} />
         <Route
           path="/dashboard"

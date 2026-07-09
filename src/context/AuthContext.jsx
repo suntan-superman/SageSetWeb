@@ -30,6 +30,11 @@ function splitDisplayName(displayName = '') {
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
 }
 
+function getNamePartsFromDisplayName(displayName = '') {
+  const { firstName, lastName } = splitDisplayName(displayName);
+  return { firstName: firstName || null, lastName: lastName || null };
+}
+
 function buildUserProfile({
   user,
   firstName = null,
@@ -262,6 +267,55 @@ export function AuthProvider({ children }) {
     return await loadUserData(auth.currentUser.uid);
   };
 
+  const completeProfileSetup = async ({ displayName = '', phone = '', smsOptIn = false }) => {
+    if (!auth.currentUser) {
+      throw new Error('No signed-in user.');
+    }
+    const cleanedDisplayName = displayName.trim();
+    const cleanedPhone = phone.trim();
+    if (!cleanedDisplayName) {
+      throw new Error('Display name is required.');
+    }
+    if (!cleanedPhone) {
+      throw new Error('Mobile phone number is required.');
+    }
+    if (smsOptIn !== true) {
+      throw new Error('SMS opt-in is required so SageSet can send account and status updates.');
+    }
+
+    const { firstName, lastName } = getNamePartsFromDisplayName(cleanedDisplayName);
+    await updateProfile(auth.currentUser, { displayName: cleanedDisplayName });
+    await setDoc(
+      doc(db, 'users', auth.currentUser.uid),
+      {
+        email: auth.currentUser.email || userData?.email || null,
+        firstName,
+        lastName,
+        displayName: cleanedDisplayName,
+        phone: cleanedPhone,
+        contact: {
+          emailVerified: auth.currentUser.emailVerified === true,
+          phone: cleanedPhone,
+          smsOptIn: true,
+          smsConsentAt: serverTimestamp(),
+          smsConsentSource: 'web_complete_profile',
+          smsVerificationStatus: 'pending',
+        },
+        notificationPreferences: {
+          ...(userData?.notificationPreferences || {}),
+          sms: true,
+        },
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const sendSmsConfirmation = httpsCallable(functions, 'sendSmsConfirmation');
+    const result = await sendSmsConfirmation({ phone: cleanedPhone });
+    await loadUserData(auth.currentUser.uid);
+    return result.data;
+  };
+
   const refreshAuthUser = async () => {
     if (!auth.currentUser) return null;
     await auth.currentUser.reload();
@@ -338,6 +392,7 @@ export function AuthProvider({ children }) {
     logout,
     resetPassword,
     refreshUserData,
+    completeProfileSetup,
     refreshAuthUser,
     resendVerificationEmail,
     resendSmsVerification,
