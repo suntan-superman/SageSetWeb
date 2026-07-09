@@ -193,7 +193,7 @@ export function AuthProvider({ children }) {
         phone,
         smsOptIn: true,
         smsConsentSource: 'web_signup',
-        authProvider: 'password',
+        authProvider: 'email',
       })
     );
 
@@ -233,7 +233,7 @@ export function AuthProvider({ children }) {
           phone: null,
           smsOptIn: false,
           smsConsentSource: null,
-          authProvider: 'apple.com',
+          authProvider: 'apple',
         })
       );
     } else {
@@ -241,7 +241,7 @@ export function AuthProvider({ children }) {
         profileRef,
         {
           email: currentUser.email || profileSnap.data()?.email || null,
-          authProvider: profileSnap.data()?.authProvider || 'apple.com',
+          authProvider: profileSnap.data()?.authProvider || 'apple',
           authProviders: currentUser.providerData.map((providerData) => providerData.providerId),
           appleUserId: currentUser.providerData.find((providerData) => providerData.providerId === 'apple.com')?.uid || null,
           contact: {
