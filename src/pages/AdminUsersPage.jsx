@@ -414,14 +414,57 @@ export default function AdminUsersPage() {
     setActionError('');
 
     try {
-      await updateUserAccessForAdmin({ uid: selectedUserId, action });
+      const result = await updateUserAccessForAdmin({ uid: selectedUserId, action });
+      if (result?.rawUserData || result?.access) {
+        setSelectedDetail((current) => {
+          if (!current || current.profile?.uid !== selectedUserId) return current;
+
+          const rawUserData = result.rawUserData || current.rawUserData || {};
+          const demoAccess =
+            typeof result.access?.demoAccess === 'boolean'
+              ? result.access.demoAccess
+              : rawUserData?.accountFlags?.demo === true;
+
+          return {
+            ...current,
+            profile: {
+              ...current.profile,
+              isDemoAccount: demoAccess,
+            },
+            rawUserData: {
+              ...current.rawUserData,
+              ...rawUserData,
+              accountFlags: {
+                ...(current.rawUserData?.accountFlags || {}),
+                ...(rawUserData?.accountFlags || {}),
+                demo: demoAccess,
+              },
+              subscription: {
+                ...(current.rawUserData?.subscription || {}),
+                ...(rawUserData?.subscription || {}),
+                source: result.access?.subscriptionSource ?? rawUserData?.subscription?.source ?? current.rawUserData?.subscription?.source,
+                status: result.access?.subscriptionStatus ?? rawUserData?.subscription?.status ?? current.rawUserData?.subscription?.status,
+              },
+              trial: {
+                ...(current.rawUserData?.trial || {}),
+                ...(rawUserData?.trial || {}),
+                status: result.access?.trialStatus ?? rawUserData?.trial?.status ?? current.rawUserData?.trial?.status,
+              },
+            },
+          };
+        });
+      }
       setDetailCache((prev) => {
         const next = { ...prev };
         delete next[selectedUserId];
         return next;
       });
       await selectUser(selectedUserId, { force: true });
-      setActionMessage(`Access action completed: ${action}`);
+      const demoSuffix =
+        action === 'toggle_demo_account' && typeof result?.access?.demoAccess === 'boolean'
+          ? ` Demo account is now ${result.access.demoAccess ? 'enabled' : 'disabled'}.`
+          : '';
+      setActionMessage(`Access action completed: ${action}.${demoSuffix}`);
     } catch (error) {
       console.warn('Failed to update user access:', error);
       setActionError(error?.message || 'Failed to update user access.');

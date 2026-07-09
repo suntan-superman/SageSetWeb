@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { 
   onAuthStateChanged, 
   createUserWithEmailAndPassword,
+  OAuthProvider,
+  signInWithPopup,
   signInWithEmailAndPassword, 
   signOut,
   sendPasswordResetEmail,
@@ -13,6 +15,105 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 
 const AuthContext = createContext(null);
+
+function buildTrialWindow() {
+  const trialStartedAt = new Date();
+  const trialEndsAt = new Date(trialStartedAt);
+  trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + 14);
+  return { trialStartedAt, trialEndsAt };
+}
+
+function splitDisplayName(displayName = '') {
+  const parts = displayName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: null, lastName: null };
+  if (parts.length === 1) return { firstName: parts[0], lastName: null };
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
+
+function buildUserProfile({
+  user,
+  firstName = null,
+  lastName = null,
+  displayName = null,
+  phone = null,
+  smsOptIn = false,
+  smsConsentSource = null,
+  authProvider = 'password',
+}) {
+  const { trialStartedAt, trialEndsAt } = buildTrialWindow();
+  const cleanedPhone = phone?.trim() || null;
+  const providerIds = user.providerData.map((provider) => provider.providerId);
+  const appleProvider = user.providerData.find((provider) => provider.providerId === 'apple.com');
+
+  return {
+    email: user.email || null,
+    firstName,
+    lastName,
+    displayName,
+    phone: cleanedPhone,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    units: 'imperial',
+    authProvider,
+    authProviders: providerIds.length ? providerIds : [authProvider],
+    appleUserId: appleProvider?.uid || null,
+    contact: {
+      emailVerified: user.emailVerified === true,
+      phone: cleanedPhone,
+      smsOptIn: smsOptIn === true,
+      smsConsentAt: smsOptIn === true ? serverTimestamp() : null,
+      smsConsentSource,
+      smsVerificationStatus: smsOptIn === true ? 'pending' : 'not_collected',
+    },
+    trial: {
+      startedAt: Timestamp.fromDate(trialStartedAt),
+      endsAt: Timestamp.fromDate(trialEndsAt),
+      status: 'active',
+      source: 'account_creation',
+      dayNumber: 1,
+    },
+    subscription: {
+      provider: 'stripe',
+      status: 'none',
+      source: null,
+      plan: 'free',
+      planId: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      lastVerifiedAt: null,
+    },
+    entitlements: {
+      premium: true,
+      nutritionAnalysis: true,
+      aiWorkoutGeneration: true,
+      progressTracking: true,
+      advancedAnalytics: false,
+      arkitChallenges: false,
+    },
+    notificationPreferences: {
+      email: true,
+      push: true,
+      marketing: false,
+      sms: smsOptIn === true,
+      trialReminders: true,
+    },
+    metrics: {
+      workoutsCompleted: 0,
+      mealsLogged: 0,
+      mealAnalysesUsed: 0,
+      streakDays: 0,
+      weightEntries: 0,
+      lastWorkoutAt: null,
+      lastMealLoggedAt: null,
+    },
+    featureFlags: {
+      arkitChallengesEnabled: false,
+    },
+  };
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -77,79 +178,24 @@ export function AuthProvider({ children }) {
 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const displayName = `${firstName} ${lastName}`.trim() || null;
-    const trialStartedAt = new Date();
-    const trialEndsAt = new Date(trialStartedAt);
-    trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + 14);
 
     if (displayName) {
       await updateProfile(userCredential.user, { displayName });
     }
 
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      email,
-      firstName: firstName || null,
-      lastName: lastName || null,
-      displayName,
-      phone: phone.trim(),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      units: 'imperial',
-      contact: {
-        emailVerified: false,
-        phone: phone.trim(),
+    await setDoc(
+      doc(db, 'users', userCredential.user.uid),
+      buildUserProfile({
+        user: userCredential.user,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        displayName,
+        phone,
         smsOptIn: true,
-        smsConsentAt: serverTimestamp(),
         smsConsentSource: 'web_signup',
-        smsVerificationStatus: 'pending',
-      },
-      trial: {
-        startedAt: Timestamp.fromDate(trialStartedAt),
-        endsAt: Timestamp.fromDate(trialEndsAt),
-        status: 'active',
-        source: 'account_creation',
-        dayNumber: 1,
-      },
-      subscription: {
-        provider: 'stripe',
-        status: 'none',
-        source: null,
-        plan: 'free',
-        planId: null,
-        stripeCustomerId: null,
-        stripeSubscriptionId: null,
-        currentPeriodStart: null,
-        currentPeriodEnd: null,
-        cancelAtPeriodEnd: false,
-        lastVerifiedAt: null,
-      },
-      entitlements: {
-        premium: true,
-        nutritionAnalysis: true,
-        aiWorkoutGeneration: true,
-        progressTracking: true,
-        advancedAnalytics: false,
-        arkitChallenges: false,
-      },
-      notificationPreferences: {
-        email: true,
-        push: true,
-        marketing: false,
-        sms: true,
-        trialReminders: true,
-      },
-      metrics: {
-        workoutsCompleted: 0,
-        mealsLogged: 0,
-        mealAnalysesUsed: 0,
-        streakDays: 0,
-        weightEntries: 0,
-        lastWorkoutAt: null,
-        lastMealLoggedAt: null,
-      },
-      featureFlags: {
-        arkitChallengesEnabled: false,
-      },
-    });
+        authProvider: 'password',
+      })
+    );
 
     await sendEmailVerification(userCredential.user);
 
@@ -162,6 +208,53 @@ export function AuthProvider({ children }) {
 
     await loadUserData(userCredential.user.uid);
     return userCredential.user;
+  };
+
+  const signInWithApple = async () => {
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+
+    const userCredential = await signInWithPopup(auth, provider);
+    const currentUser = userCredential.user;
+    const profileRef = doc(db, 'users', currentUser.uid);
+    const profileSnap = await getDoc(profileRef);
+
+    if (!profileSnap.exists()) {
+      const displayName = currentUser.displayName || '';
+      const { firstName, lastName } = splitDisplayName(displayName);
+      await setDoc(
+        profileRef,
+        buildUserProfile({
+          user: currentUser,
+          firstName,
+          lastName,
+          displayName: displayName || null,
+          phone: null,
+          smsOptIn: false,
+          smsConsentSource: null,
+          authProvider: 'apple.com',
+        })
+      );
+    } else {
+      await setDoc(
+        profileRef,
+        {
+          email: currentUser.email || profileSnap.data()?.email || null,
+          authProvider: profileSnap.data()?.authProvider || 'apple.com',
+          authProviders: currentUser.providerData.map((providerData) => providerData.providerId),
+          appleUserId: currentUser.providerData.find((providerData) => providerData.providerId === 'apple.com')?.uid || null,
+          contact: {
+            emailVerified: currentUser.emailVerified === true,
+          },
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+
+    await loadUserData(currentUser.uid);
+    return currentUser;
   };
 
   const refreshUserData = async () => {
@@ -241,6 +334,7 @@ export function AuthProvider({ children }) {
     login,
     loginAdmin,
     signup,
+    signInWithApple,
     logout,
     resetPassword,
     refreshUserData,

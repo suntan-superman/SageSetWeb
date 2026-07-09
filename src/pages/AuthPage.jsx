@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 
 export default function AuthPage({ mode = 'login' }) {
   const isSignup = mode === 'signup';
-  const { login, signup, resetPassword } = useAuth();
+  const { login, signup, signInWithApple, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     email: '',
@@ -98,6 +98,22 @@ export default function AuthPage({ mode = 'login' }) {
     }
   };
 
+  const handleAppleAuth = async () => {
+    setBusy(true);
+    setError('');
+    setMessage('');
+
+    try {
+      await signInWithApple();
+      trackEvent(isSignup ? 'CompleteRegistration' : 'Login', { method: 'apple' });
+      navigate('/dashboard');
+    } catch (err) {
+      setError(formatAppleAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <section className="bg-gray-950 px-6 py-16 text-white">
       <div className="mx-auto grid max-w-content gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
@@ -128,6 +144,22 @@ export default function AuthPage({ mode = 'login' }) {
         </div>
 
         <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur">
+          <button
+            type="button"
+            onClick={handleAppleAuth}
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-3 rounded-lg bg-black px-5 py-3 font-semibold text-white ring-1 ring-white/20 transition hover:bg-gray-950 disabled:opacity-60"
+          >
+            <span className="text-xl leading-none" aria-hidden="true"></span>
+            {isSignup ? 'Sign up with Apple' : 'Sign in with Apple'}
+          </button>
+
+          <div className="my-5 flex items-center gap-3 text-sm text-gray-400">
+            <span className="h-px flex-1 bg-white/15" />
+            <span>{isSignup ? 'or create with email' : 'or sign in with email'}</span>
+            <span className="h-px flex-1 bg-white/15" />
+          </div>
+
           {isSignup ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="First name" value={form.firstName} onChange={updateField('firstName')} autoComplete="given-name" />
@@ -244,6 +276,23 @@ function formatPhoneNumber(value) {
   if (digits.length <= 3) return digits;
   if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function formatAppleAuthError(error) {
+  const code = error?.code || '';
+  if (code === 'auth/popup-closed-by-user') {
+    return 'Apple sign-in was cancelled.';
+  }
+  if (code === 'auth/popup-blocked') {
+    return 'Your browser blocked the Apple sign-in popup. Allow popups for SageSet and try again.';
+  }
+  if (code === 'auth/account-exists-with-different-credential') {
+    return 'An account already exists with this email. Sign in with your original method first, then link Apple from your account.';
+  }
+  if (code === 'auth/operation-not-allowed') {
+    return 'Apple sign-in is not enabled for this Firebase project yet.';
+  }
+  return error?.message || 'Apple sign-in could not be completed. Please try again.';
 }
 
 function Field({
