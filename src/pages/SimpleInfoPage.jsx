@@ -12,7 +12,7 @@ const pageCopy = {
   },
   '/faq': {
     title: 'Frequently asked questions',
-    body: 'SageSet Premium is planned at $9.99/month after a 14-day free trial. AI nutrition estimates are approximate and designed to support, not replace, user judgment.',
+    body: 'SageSet Premium is $9.99/month after a 14-day free trial. Your card is saved at checkout, but the first monthly charge begins after the trial unless you cancel. AI nutrition estimates are approximate and designed to support, not replace, user judgment.',
   },
   '/supported-devices': {
     title: 'Supported devices',
@@ -24,7 +24,7 @@ const pageCopy = {
   },
   '/billing/success': {
     title: 'Trial started',
-    body: 'Your billing session is complete. Return to the SageSet app and refresh billing status if the new subscription is not visible yet.',
+    body: 'Your billing session is complete. Your card is saved, your free trial is active, and SageSet Premium begins billing at $9.99/month after the trial unless you cancel. Return to SageSet and refresh billing status if the update is not visible yet.',
   },
   '/billing/cancel': {
     title: 'Checkout canceled',

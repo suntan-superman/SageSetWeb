@@ -74,10 +74,10 @@ const pageContent = {
   '/pricing': {
     eyebrow: 'Pricing',
     title: 'Start free. Keep going for $9.99/month.',
-    body: 'Try SageSet Premium free for 14 days. Continue only if it helps you train with less friction.',
+    body: 'Try SageSet Premium free for 14 days. Your card is saved at checkout, but the first $9.99 monthly charge begins only after the trial unless you cancel.',
     icon: CheckCircleIcon,
     event: 'ViewContent',
-    bullets: ['14-day free trial', '$9.99 monthly plan', 'Cancel through Stripe billing'],
+    bullets: ['14-day free trial', '$0 due today', 'Cancel through Stripe billing before the trial ends'],
   },
   '/download': {
     eyebrow: 'Download',

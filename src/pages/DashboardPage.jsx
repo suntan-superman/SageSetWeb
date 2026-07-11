@@ -24,7 +24,7 @@ import {
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext.jsx';
-import { formatDate, getDaysRemaining } from '../utils/date.js';
+import { formatDate, getDaysRemaining, toDate } from '../utils/date.js';
 import { loadBillingStatus, openCustomerPortal, refreshEntitlements, startCheckout } from '../services/billing.js';
 import { formatWorkoutShareText, loadMemberDashboard } from '../services/memberDashboard.js';
 import { acceptPlanReview, dismissPlanReview, loadRecentPlanReviews, requestPlanReview } from '../services/planReviews.js';
@@ -100,6 +100,7 @@ export default function DashboardPage({ section = 'overview' }) {
     accountFlags.demo === true ||
     entitlements.premium === true ||
     subscription.status === 'active' ||
+    subscription.status === 'trialing' ||
     trial.status === 'active';
   const checkoutResult = new URLSearchParams(location.search).get('checkout');
   const displayName = userData?.firstName || userData?.displayName?.split(' ')?.[0] || user?.displayName?.split(' ')?.[0] || 'there';
@@ -231,7 +232,7 @@ export default function DashboardPage({ section = 'overview' }) {
         </nav>
 
         {checkoutResult === 'success' ? (
-          <StatusBanner tone="success" text="Checkout complete. Subscription status may take a moment to sync." />
+          <StatusBanner tone="success" text="Checkout complete. Your card is saved, your free trial is active, and the subscription begins after the trial unless canceled." />
         ) : null}
         {checkoutResult === 'cancelled' ? (
           <StatusBanner tone="warning" text="Checkout was cancelled. No billing changes were made." />
@@ -282,6 +283,16 @@ export default function DashboardPage({ section = 'overview' }) {
 }
 
 function Overview({ cards, trial, subscription, hasAccess, displayName, daysRemaining, streakDays, weightRemaining, compliancePct, hasPlan, loading }) {
+  const overviewTrialEndDate = toDate(subscription.trialEnd || trial.endsAt);
+  const overviewTrialStillActive = !!overviewTrialEndDate && overviewTrialEndDate.getTime() > Date.now();
+  const activeSubscriptionWithTrial =
+    subscription.status === 'trialing' || (subscription.status === 'active' && overviewTrialStillActive);
+  const overviewBillingText = activeSubscriptionWithTrial
+    ? `Free trial active until ${formatDate(overviewTrialEndDate)}. Your first $9.99 monthly charge begins after the trial unless you cancel.`
+    : subscription.status === 'active'
+      ? 'SageSet Premium is active at $9.99/month.'
+      : `Trial ends ${formatDate(trial.endsAt)}. Subscription status: ${subscription.status || 'none'}.`;
+
   return (
     <div className="mt-6 space-y-6">
       {!loading && !hasPlan ? <MobileAppNextStep /> : null}
@@ -310,7 +321,7 @@ function Overview({ cards, trial, subscription, hasAccess, displayName, daysRema
             <p className="mt-3 text-lg font-bold">
               {hasAccess ? "You're one completed session away from stronger momentum." : 'Your progress is saved and ready when access is active.'}
             </p>
-            <p className="mt-3 text-sm text-gray-300">Trial ends {formatDate(trial.endsAt)}. Subscription status: {subscription.status || 'none'}.</p>
+            <p className="mt-3 text-sm text-gray-300">{overviewBillingText}</p>
             <Link to="/dashboard/billing" className="mt-5 inline-flex rounded-lg bg-sage-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sage-600">
               Manage billing
             </Link>
@@ -867,17 +878,27 @@ function CoachStat({ label, value }) {
 
 function BillingPanel({ subscription, trial, hasAccess, busy, onCheckout, onPortal, onRefresh }) {
   const active = subscription.status === 'active';
+  const trialEndDate = toDate(subscription.trialEnd || trial.endsAt);
+  const trialStillActive = !!trialEndDate && trialEndDate.getTime() > Date.now();
+  const subscriptionLabel =
+    subscription.status === 'trialing' || (active && trialStillActive)
+      ? 'Trial active'
+      : subscription.status || 'none';
+  const billingSummary =
+    subscription.status === 'trialing' || (active && trialStillActive)
+      ? `Your card is saved. The first $9.99 monthly charge begins after your free trial ends on ${formatDate(trialEndDate)} unless you cancel.`
+      : 'Start with a 14-day free trial. After the trial, SageSet Premium continues at $9.99/month unless you cancel. Billing is securely managed by Stripe.';
   const hasCustomer = typeof subscription.stripeCustomerId === 'string';
 
   return (
     <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6">
       <CreditCardIcon className="h-8 w-8 text-sage-700" />
       <h2 className="mt-4 text-2xl font-bold text-gray-900">SageSet Premium</h2>
-      <p className="mt-2 text-gray-600">14-day free trial, then $9.99/month. Billing is securely managed by Stripe.</p>
+      <p className="mt-2 text-gray-600">{billingSummary}</p>
 
       <dl className="mt-6 grid gap-4 md:grid-cols-3">
         <Stat label="Access" value={hasAccess ? 'Active' : 'Inactive'} />
-        <Stat label="Subscription" value={subscription.status || 'none'} />
+        <Stat label="Subscription" value={subscriptionLabel} />
         <Stat label="Trial ends" value={formatDate(trial.endsAt || subscription.trialEnd)} />
       </dl>
 
@@ -888,7 +909,7 @@ function BillingPanel({ subscription, trial, hasAccess, busy, onCheckout, onPort
           </button>
         ) : (
           <button type="button" onClick={onCheckout} disabled={busy} className="rounded-lg bg-sage-700 px-5 py-3 font-semibold text-white hover:bg-sage-800 disabled:opacity-60">
-            Activate SageSet Premium - $9.99/month
+            Start 14-day free trial
           </button>
         )}
         <button type="button" onClick={onRefresh} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-5 py-3 font-semibold text-gray-700 hover:border-sage-600 hover:text-sage-700 disabled:opacity-60">
