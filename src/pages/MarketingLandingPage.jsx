@@ -10,9 +10,7 @@ import {
   SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { trackCustomEvent, trackEvent } from '../services/metaPixel';
-
-const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
-const GOOGLE_PLAY_URL = import.meta.env.VITE_GOOGLE_PLAY_URL || '';
+import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../config/storeLinks';
 
 const pageContent = {
   '/fitness-ai-coach': {
@@ -119,8 +117,6 @@ export default function MarketingLandingPage({ path = '/' }) {
     }
   };
 
-  const showTemporaryDownloadInstructions = path === '/download' && !APP_STORE_URL && !GOOGLE_PLAY_URL;
-
   return (
     <div>
       <section className="bg-gray-950 text-white">
@@ -131,18 +127,9 @@ export default function MarketingLandingPage({ path = '/' }) {
               {content.title}
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-gray-300">{content.body}</p>
-            {showTemporaryDownloadInstructions ? (
-              <div className="mt-7 max-w-2xl rounded-xl border border-sage-300/20 bg-white/10 p-5 text-gray-200">
-                <p className="font-bold text-white">SageSet mobile downloads are being prepared.</p>
-                <p className="mt-2 text-sm leading-6">
-                  We are moving SageSet to the Workside Software Apple and Google developer accounts before public release.
-                  If you already have a test build installed, open SageSet on your phone and sign in with the same account
-                  you created on the web. Public App Store and Google Play links will appear here once the listings are live.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                {path === '/download' && APP_STORE_URL ? (
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              {path === '/download' ? (
+                <>
                   <a
                     href={APP_STORE_URL}
                     onClick={handlePrimaryClick}
@@ -152,8 +139,6 @@ export default function MarketingLandingPage({ path = '/' }) {
                   >
                     Download for iPhone
                   </a>
-                ) : null}
-                {path === '/download' && GOOGLE_PLAY_URL ? (
                   <a
                     href={GOOGLE_PLAY_URL}
                     onClick={handlePrimaryClick}
@@ -163,24 +148,23 @@ export default function MarketingLandingPage({ path = '/' }) {
                   >
                     Download for Android
                   </a>
-                ) : null}
-                {path !== '/download' ? (
-                  <a
-                    href="/signup"
-                    onClick={handlePrimaryClick}
-                    className="inline-flex items-center justify-center rounded-lg bg-sage-500 px-6 py-3 text-base font-semibold text-white hover:bg-sage-600"
-                  >
-                    Start free trial
-                  </a>
-                ) : null}
+                </>
+              ) : (
                 <a
-                  href="/pricing"
-                  className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3 text-base font-semibold text-white transition-colors hover:border-sage-300 hover:text-sage-200"
+                  href="/signup"
+                  onClick={handlePrimaryClick}
+                  className="inline-flex items-center justify-center rounded-lg bg-sage-500 px-6 py-3 text-base font-semibold text-white hover:bg-sage-600"
                 >
-                  See pricing
+                  Start free trial
                 </a>
-              </div>
-            )}
+              )}
+              <a
+                href="/pricing"
+                className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3 text-base font-semibold text-white transition-colors hover:border-sage-300 hover:text-sage-200"
+              >
+                See pricing
+              </a>
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-sage-300/20 bg-gray-900 shadow-2xl shadow-sage-900/30">

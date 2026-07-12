@@ -28,9 +28,7 @@ import { formatDate, getDaysRemaining, toDate } from '../utils/date.js';
 import { loadBillingStatus, openCustomerPortal, refreshEntitlements, startCheckout } from '../services/billing.js';
 import { formatWorkoutShareText, loadMemberDashboard } from '../services/memberDashboard.js';
 import { acceptPlanReview, dismissPlanReview, loadRecentPlanReviews, requestPlanReview } from '../services/planReviews.js';
-
-const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
-const GOOGLE_PLAY_URL = import.meta.env.VITE_GOOGLE_PLAY_URL || '';
+import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../config/storeLinks';
 
 const dashboardNav = [
   { path: '/dashboard', label: 'Overview' },
@@ -374,15 +372,6 @@ function MobileAppNextStep() {
             >
               Download for Android
             </a>
-          ) : null}
-          {!APP_STORE_URL && !GOOGLE_PLAY_URL ? (
-            <div className="rounded-lg border border-sage-200 bg-white px-4 py-3 text-sm text-gray-700">
-              <p className="font-bold text-gray-900">Mobile app access</p>
-              <p className="mt-1">
-                SageSet is being moved to the Workside Software developer accounts. Use your current test build for now,
-                then sign in with this same account after the App Store and Google Play listings are live.
-              </p>
-            </div>
           ) : null}
         </div>
       </div>

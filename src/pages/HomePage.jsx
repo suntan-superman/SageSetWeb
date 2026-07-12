@@ -8,8 +8,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { trackCustomEvent, trackEvent } from '../services/metaPixel';
 
-const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL || '';
-
 export default function HomePage() {
   const handleDownloadClick = () => {
     trackCustomEvent('DownloadClicked', { source: 'home_hero' });
@@ -51,17 +49,13 @@ export default function HomePage() {
               >
                 Start Your 14-Day Free Trial
               </a>
-              {APP_STORE_URL ? (
-                <a
-                  href={APP_STORE_URL}
-                  onClick={handleDownloadClick}
-                  className="ml-3 inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-sage-700 transition-colors bg-white border border-sage-200 rounded-xl hover:border-sage-700"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Download app
-                </a>
-              ) : null}
+              <a
+                href="/download"
+                onClick={handleDownloadClick}
+                className="ml-3 inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-sage-700 transition-colors bg-white border border-sage-200 rounded-xl hover:border-sage-700"
+              >
+                Download app
+              </a>
             </div>
             <p className="mt-3 text-sm font-medium text-gray-500">AI recommends. You decide. No credit card required. Available on iPhone and Android.</p>
             <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
