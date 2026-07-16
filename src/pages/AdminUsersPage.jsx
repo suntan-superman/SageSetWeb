@@ -167,8 +167,8 @@ function ARChallengeRolloutPanel() {
             </StatusChip>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-gray-300">
-            This server policy is the operational kill switch. It is checked whenever a beta build opens or returns to the foreground.
-            Release builds still require their separate compile-time AR flag.
+            This server policy is the operational kill switch. An AR-capable beta build only shows challenges to users explicitly enrolled below;
+            both gates are checked whenever the app opens or returns to the foreground.
           </p>
           <p className="mt-2 text-xs text-gray-400">
             Phase 0 scope: push-ups and squats only. Front-camera push-ups remain out of scope.
@@ -721,6 +721,9 @@ export default function AdminUsersPage() {
                           {selectedDetail.profile?.isDemoAccount ? (
                             <StatusChip tone="emerald">Demo access</StatusChip>
                           ) : null}
+                          {selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? (
+                            <StatusChip tone="amber">AR beta enrolled</StatusChip>
+                          ) : null}
                         </div>
 
                         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -804,11 +807,15 @@ export default function AdminUsersPage() {
 
                     <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-6">
                       <h3 className="text-lg font-semibold text-white">Access Controls</h3>
-                      <div className="mt-4 grid gap-3 md:grid-cols-4">
+                      <div className="mt-4 grid gap-3 md:grid-cols-5">
                         <DetailRow label="Trial" value={selectedDetail.rawUserData?.trial?.status || 'Not set'} />
                         <DetailRow label="Subscription" value={selectedDetail.rawUserData?.subscription?.status || 'Not set'} />
                         <DetailRow label="Source" value={selectedDetail.rawUserData?.subscription?.source || 'Not set'} />
                         <DetailRow label="Demo Account" value={selectedDetail.rawUserData?.accountFlags?.demo ? 'Yes' : 'No'} />
+                        <DetailRow
+                          label="AR Challenge Beta"
+                          value={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Enrolled' : 'Not enrolled'}
+                        />
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {[
@@ -819,7 +826,12 @@ export default function AdminUsersPage() {
                             'toggle_demo_account',
                             selectedDetail.rawUserData?.accountFlags?.demo ? 'Disable demo account' : 'Enable demo account',
                           ],
-                          ['toggle_arkit_beta', 'Toggle AR beta'],
+                          [
+                            'toggle_arkit_beta',
+                            selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true
+                              ? 'Disable AR beta'
+                              : 'Enable AR beta',
+                          ],
                           ['recalculate', 'Recalculate'],
                         ].map(([action, label]) => (
                           <button
