@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { trackEvent } from '../services/metaPixel';
+import { flushWorksideEvents, trackWorksideEvent } from '../services/worksideAnalytics.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function AuthPage({ mode = 'login' }) {
@@ -29,6 +30,7 @@ export default function AuthPage({ mode = 'login' }) {
         content_name: 'SageSet signup',
         content_category: 'signup',
       });
+      void trackWorksideEvent('signup_started', { method: 'email_or_apple' });
     }
   }, [isSignup]);
 
@@ -70,10 +72,14 @@ export default function AuthPage({ mode = 'login' }) {
         trackEvent('Lead', { content_name: 'web_signup_submit', content_category: 'signup' });
         await signup(form);
         trackEvent('CompleteRegistration', { method: 'email' });
+        await trackWorksideEvent('signup_completed', { method: 'email' });
+        await flushWorksideEvents();
         navigate('/verify-email');
         return;
       } else {
         await login(form.email, form.password);
+        await trackWorksideEvent('login_completed', { method: 'email' });
+        await flushWorksideEvents();
       }
       navigate('/dashboard');
     } catch (err) {
@@ -104,8 +110,11 @@ export default function AuthPage({ mode = 'login' }) {
     setMessage('');
 
     try {
-      await signInWithApple();
+      const result = await signInWithApple();
       trackEvent(isSignup ? 'CompleteRegistration' : 'Login', { method: 'apple' });
+      if (isSignup && result?.isNewUser) await trackWorksideEvent('signup_completed', { method: 'apple' });
+      if (!isSignup) await trackWorksideEvent('login_completed', { method: 'apple' });
+      await flushWorksideEvents();
       navigate('/dashboard');
     } catch (err) {
       setError(formatAppleAuthError(err));

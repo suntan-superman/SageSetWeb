@@ -1,6 +1,7 @@
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import { trackCustomEvent, trackEvent } from './metaPixel';
+import { trackWorksideEvent } from './worksideAnalytics.js';
 
 export async function loadBillingStatus() {
   const fn = httpsCallable(functions, 'getBillingStatus');
@@ -15,6 +16,7 @@ export async function refreshEntitlements() {
 }
 
 export async function startCheckout() {
+  void trackWorksideEvent('checkout_started', { plan: 'sageset_premium', currency: 'USD', value: 9.99 });
   trackEvent('InitiateCheckout', {
     content_name: 'SageSet Premium',
     content_category: 'subscription',
@@ -31,6 +33,7 @@ export async function startCheckout() {
 }
 
 export async function openCustomerPortal() {
+  void trackWorksideEvent('customer_portal_opened', { placement: 'dashboard_billing' });
   const fn = httpsCallable(functions, 'createPortalSession');
   const response = await fn({ returnPath: '/dashboard/billing' });
   const url = response?.data?.url;

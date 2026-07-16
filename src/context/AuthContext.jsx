@@ -224,7 +224,8 @@ export function AuthProvider({ children }) {
     const profileRef = doc(db, 'users', currentUser.uid);
     const profileSnap = await getDoc(profileRef);
 
-    if (!profileSnap.exists()) {
+    const isNewUser = !profileSnap.exists();
+    if (isNewUser) {
       const displayName = currentUser.displayName || '';
       const { firstName, lastName } = splitDisplayName(displayName);
       await setDoc(
@@ -258,7 +259,7 @@ export function AuthProvider({ children }) {
     }
 
     await loadUserData(currentUser.uid);
-    return currentUser;
+    return { user: currentUser, isNewUser };
   };
 
   const refreshUserData = async () => {

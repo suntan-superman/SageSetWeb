@@ -15,8 +15,10 @@ import { useAuth } from '../context/AuthContext';
 import AdminHeader from '../components/AdminHeader.jsx';
 import {
   getUserAdminDetail,
+  getARChallengeRolloutForAdmin,
   listUsersForAdmin,
   sendUserExpoNotification,
+  updateARChallengeRolloutForAdmin,
   updateUserAccessForAdmin,
 } from '../services/adminUsers.js';
 
@@ -112,6 +114,90 @@ function StatusChip({ children, tone = 'gray' }) {
     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${toneClasses[tone] || toneClasses.gray}`}>
       {children}
     </span>
+  );
+}
+
+function ARChallengeRolloutPanel() {
+  const [rollout, setRollout] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadRollout = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setRollout(await getARChallengeRolloutForAdmin());
+    } catch (loadError) {
+      setError(loadError?.message || 'Unable to load the AR rollout policy.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRollout();
+  }, []);
+
+  const updateRollout = async (enabled) => {
+    const verb = enabled ? 'enable' : 'disable';
+    if (!window.confirm(`Are you sure you want to ${verb} AR challenges globally?`)) return;
+
+    setUpdating(true);
+    setError('');
+    try {
+      setRollout(await updateARChallengeRolloutForAdmin({ enabled }));
+    } catch (updateError) {
+      setError(updateError?.message || 'Unable to update the AR rollout policy.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const isEnabled = rollout?.enabled === true;
+
+  return (
+    <section className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">AR Challenge Rollout</h2>
+            <StatusChip tone={isEnabled ? 'amber' : 'emerald'}>
+              {loading ? 'Checking policy' : isEnabled ? 'Controlled beta enabled' : 'Globally disabled'}
+            </StatusChip>
+          </div>
+          <p className="mt-2 max-w-3xl text-sm text-gray-300">
+            This server policy is the operational kill switch. It is checked whenever a beta build opens or returns to the foreground.
+            Release builds still require their separate compile-time AR flag.
+          </p>
+          <p className="mt-2 text-xs text-gray-400">
+            Phase 0 scope: push-ups and squats only. Front-camera push-ups remain out of scope.
+          </p>
+          {rollout?.updatedAt ? <p className="mt-2 text-xs text-gray-500">Last changed {formatDateTime(rollout.updatedAt)}</p> : null}
+          {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={loadRollout}
+            disabled={loading || updating}
+            className="rounded-lg border border-gray-600 px-3 py-2 text-sm font-medium text-gray-100 transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => updateRollout(!isEnabled)}
+            disabled={loading || updating}
+            className={`rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              isEnabled ? 'bg-red-700 hover:bg-red-600' : 'bg-emerald-700 hover:bg-emerald-600'
+            }`}
+          >
+            {updating ? 'Updating...' : isEnabled ? 'Disable AR globally' : 'Enable controlled beta'}
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -484,6 +570,8 @@ export default function AdminUsersPage() {
           <StatCard icon={DevicePhoneMobileIcon} label="Push Ready" value={stats.withPush} tone="amber" />
           <StatCard icon={UserCircleIcon} label="Verified Emails" value={stats.verified} tone="rose" />
         </div>
+
+        <ARChallengeRolloutPanel />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
           <section className="overflow-hidden rounded-2xl border border-gray-700 bg-gray-800/90">

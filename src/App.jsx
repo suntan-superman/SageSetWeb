@@ -20,6 +20,7 @@ import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminUsagePage from './pages/AdminUsagePage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { initMetaPixel, trackPageView } from './services/metaPixel.js';
+import { flushWorksideEvents, trackWorksideEvent } from './services/worksideAnalytics.js';
 import { useEffect } from 'react';
 
 // Protected route component for admin pages
@@ -84,6 +85,9 @@ function PixelRouteTracker() {
 
   useEffect(() => {
     trackPageView();
+    const eventName = location.pathname === '/pricing' ? 'pricing_view' : 'landing_page_view';
+    void trackWorksideEvent(eventName, { route: location.pathname });
+    void flushWorksideEvents();
   }, [location.pathname, location.search]);
 
   return null;

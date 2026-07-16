@@ -7,10 +7,17 @@ import {
   StarIcon,
 } from '@heroicons/react/24/outline';
 import { trackCustomEvent, trackEvent } from '../services/metaPixel';
+import { trackWorksideEvent } from '../services/worksideAnalytics.js';
 
 export default function HomePage() {
   const handleDownloadClick = () => {
     trackCustomEvent('DownloadClicked', { source: 'home_hero' });
+    void trackWorksideEvent('cta_click_build_plan', { placement: 'home_hero', destination: 'download_page' });
+  };
+
+  const handleTrialClick = (placement) => {
+    trackEvent('Lead', { source: placement });
+    void trackWorksideEvent('cta_click_start_trial', { placement });
   };
 
   const handleVideoPlay = () => {
@@ -44,7 +51,7 @@ export default function HomePage() {
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <a
                 href="/signup"
-                onClick={() => trackEvent('Lead', { source: 'home_hero' })}
+                onClick={() => handleTrialClick('home_hero')}
                 className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-colors bg-sage-700 rounded-xl hover:bg-sage-800"
               >
                 Start Your 14-Day Free Trial
@@ -125,7 +132,7 @@ export default function HomePage() {
             Start with a 14-day free trial. No credit card required.
           </p>
           <p className="mt-4">
-            <a href="/signup" className="font-semibold text-sage-700 hover:text-sage-800">
+            <a href="/signup" onClick={() => handleTrialClick('home_footer')} className="font-semibold text-sage-700 hover:text-sage-800">
               Start Your 14-Day Free Trial
             </a>
           </p>

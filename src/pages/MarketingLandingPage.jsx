@@ -10,6 +10,7 @@ import {
   SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { trackCustomEvent, trackEvent } from '../services/metaPixel';
+import { trackWorksideEvent } from '../services/worksideAnalytics.js';
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../config/storeLinks';
 
 const pageContent = {
@@ -107,13 +108,16 @@ export default function MarketingLandingPage({ path = '/' }) {
     });
   }, [content.title, path]);
 
-  const handlePrimaryClick = () => {
+  const handlePrimaryClick = (store = null) => {
     if (path === '/download') {
       trackCustomEvent('DownloadClicked', { source: path });
+      void trackWorksideEvent(store === 'apple' ? 'download_click_ios' : 'download_click_android', { store: store === 'apple' ? 'apple' : 'google_play' });
     } else if (path === '/pricing') {
       trackEvent('Lead', { content_name: 'pricing_start_trial_click', content_category: 'pricing' });
+      void trackWorksideEvent('cta_click_start_trial', { placement: 'marketing_primary', route: path });
     } else {
       trackEvent('Lead', { content_name: content.title, content_category: 'marketing_page' });
+      void trackWorksideEvent('cta_click_build_plan', { placement: 'marketing_primary', route: path });
     }
   };
 
@@ -132,7 +136,7 @@ export default function MarketingLandingPage({ path = '/' }) {
                 <>
                   <a
                     href={APP_STORE_URL}
-                    onClick={handlePrimaryClick}
+                    onClick={() => handlePrimaryClick('apple')}
                     className="inline-flex items-center justify-center rounded-lg bg-sage-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-sage-600"
                     target="_blank"
                     rel="noreferrer"
@@ -141,7 +145,7 @@ export default function MarketingLandingPage({ path = '/' }) {
                   </a>
                   <a
                     href={GOOGLE_PLAY_URL}
-                    onClick={handlePrimaryClick}
+                    onClick={() => handlePrimaryClick('google_play')}
                     className="inline-flex items-center justify-center rounded-lg bg-sage-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-sage-600"
                     target="_blank"
                     rel="noreferrer"

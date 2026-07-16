@@ -81,3 +81,11 @@ export async function listNutritionUsageForAdmin(limit = 100) {
 export async function updateUserAccessForAdmin({ uid, action }) {
   return await callAdminFunction('updateUserAccessForAdmin', { uid, action });
 }
+
+export async function getARChallengeRolloutForAdmin() {
+  return await callAdminFunction('getARChallengeRollout', {});
+}
+
+export async function updateARChallengeRolloutForAdmin({ enabled }) {
+  return await callAdminFunction('updateARChallengeRolloutForAdmin', { enabled });
+}
