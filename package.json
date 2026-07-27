@@ -13,6 +13,7 @@
     "pixel:test:live:headful": "node scripts/verify-meta-pixel.mjs --live --headful",
     "pixel:install-browser": "puppeteer browsers install chrome",
     "verify:meta-capi": "node scripts/verify-meta-capi.mjs",
+    "verify:meta-capi:live": "node scripts/verify-meta-capi-live.mjs",
     "verify:release": "node ./scripts/verify-release.js",
     "verify:release:local": "node ./scripts/verify-release.js --target local",
     "verify:release:prod": "node ./scripts/verify-release.js --target production",
