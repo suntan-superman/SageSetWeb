@@ -10,7 +10,7 @@ const CAPI_ENDPOINT = (
 const PIXEL_DEBUG_KEY = '__SAGESET_META_PIXEL_EVENTS__';
 const CONSENT_STORAGE_KEY = 'sageset.marketingConsent.v1';
 const META_REQUEST_TIMEOUT_MS = 4_000;
-const CONFIGURED_TEST_EVENT_CODE = import.meta.env.VITE_META_TEST_EVENT_CODE || 'TEST50341';
+const CONFIGURED_TEST_EVENT_CODE = import.meta.env.VITE_META_TEST_EVENT_CODE || '';
 
 let initialized = false;
 let lastPageViewPath = '';
