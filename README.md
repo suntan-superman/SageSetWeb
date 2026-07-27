@@ -20,7 +20,13 @@ Set the public Pixel ID in `web/.env`:
 
 ```env
 VITE_META_PIXEL_ID=your_meta_pixel_id
+VITE_META_CAPI_ENDPOINT=https://us-central1-greencheck-d3d88.cloudfunctions.net/sendMetaConversion
+VITE_FIREBASE_APPCHECK_SITE_KEY=your_recaptcha_enterprise_site_key
 ```
+
+`ViewContent` is the only event currently paired with the server-side Meta Conversions API. The browser generates one `vc_<UUID>` and supplies the same value as Pixel `eventID` and CAPI `event_id`. Other events remain Pixel-only until ViewContent is certified.
+
+The CAPI access token and dataset ID are Firebase runtime secrets. They must never be configured as `VITE_*` variables.
 
 Tracked browser events:
 
@@ -55,7 +61,9 @@ Remove-Item Env:\SAGESET_META_TEST_EVENT_CODE
 
 Headful mode opens a visible Chrome session. Meta's browser Pixel library may load in headless Puppeteer without emitting the final `facebook.com/tr` collection requests, so use headful mode when confirming events inside Meta Events Manager.
 
-To send events from the already-deployed site instead of the local Vite server:
+For CAPI Test Events, temporarily configure `META_TEST_EVENT_CODE` on the Firebase function runtime, validate the matching browser/server ID in Meta, and remove it before production validation. Never accept a Test Events code from an untrusted browser request.
+
+To test the already-deployed site, temporarily add `VITE_META_TEST_EVENT_CODE` in Netlify, redeploy, run the live check, then remove the variable and redeploy before production validation:
 
 ```powershell
 $env:SAGESET_PIXEL_TEST_URL="https://sagesetfitness.com"
@@ -64,4 +72,6 @@ npm run pixel:test:live:headful
 Remove-Item Env:\SAGESET_META_TEST_EVENT_CODE
 Remove-Item Env:\SAGESET_PIXEL_TEST_URL
 ```
+
+The URL query string is ignored by production bundles; this prevents visitors from injecting a Meta Test Events code.
 

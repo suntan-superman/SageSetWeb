@@ -9,7 +9,7 @@ import {
   FireIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline';
-import { trackCustomEvent, trackEvent } from '../services/metaPixel';
+import { trackCustomEvent, trackEvent, trackMetaEvent } from '../services/metaPixel';
 import { trackWorksideEvent } from '../services/worksideAnalytics.js';
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../config/storeLinks';
 
@@ -102,9 +102,13 @@ export default function MarketingLandingPage({ path = '/' }) {
   const Icon = content.icon;
 
   useEffect(() => {
-    trackEvent('ViewContent', {
-      content_name: content.title,
-      content_category: path === '/pricing' ? 'pricing' : 'marketing_page',
+    trackMetaEvent({
+      eventName: 'ViewContent',
+      pixelParameters: {
+        content_name: content.title,
+        content_category: path === '/pricing' ? 'pricing' : 'marketing_page',
+      },
+      dedupeKey: `view_content:route:${path}`,
     });
   }, [content.title, path]);
 

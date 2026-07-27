@@ -99,6 +99,9 @@ export default function PrivacyPolicyPage() {
                 <strong>OpenAI</strong>: If you use the AI plan builder, requests are processed through our server-side functions. 
                 We do not opt in to allowing OpenAI to use your data to train their models.
               </li>
+              <li>
+                <strong>Meta Platforms</strong>: Where advertising measurement is enabled, our website may send a browser event and a matching server-side event for deduplication. These events may include the SageSet page, browser/device request information, Meta attribution cookies when present, and hashed verified account identifiers. We do not send meal or progress photos, health or injury information, body measurements, coaching conversations, AR body-tracking data, or payment credentials to Meta.
+              </li>
             </ul>
           </Section>
 

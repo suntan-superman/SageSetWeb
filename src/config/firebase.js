@@ -16,7 +16,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const appCheckSiteKey = import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY;
+// The reCAPTCHA Enterprise site key is public client configuration. Keep a
+// production fallback so Git-connected Netlify builds remain protected even
+// when the optional environment override has not been configured.
+const appCheckSiteKey =
+  import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY ||
+  '6LdFOFYtAAAAAAcaljNPZC_aiN7aY22xpTm_8dg4';
 const appCheck = appCheckSiteKey
   ? initializeAppCheck(app, {
       provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),

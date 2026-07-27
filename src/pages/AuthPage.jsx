@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { trackEvent } from '../services/metaPixel';
+import { trackEvent, trackMetaEvent } from '../services/metaPixel';
 import { flushWorksideEvents, trackWorksideEvent } from '../services/worksideAnalytics.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -26,9 +26,13 @@ export default function AuthPage({ mode = 'login' }) {
 
   useEffect(() => {
     if (isSignup) {
-      trackEvent('ViewContent', {
-        content_name: 'SageSet signup',
-        content_category: 'signup',
+      trackMetaEvent({
+        eventName: 'ViewContent',
+        pixelParameters: {
+          content_name: 'SageSet signup',
+          content_category: 'signup',
+        },
+        dedupeKey: 'view_content:route:/signup',
       });
       void trackWorksideEvent('signup_started', { method: 'email_or_apple' });
     }

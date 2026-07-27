@@ -6,7 +6,7 @@ import {
   SparklesIcon,
   StarIcon,
 } from '@heroicons/react/24/outline';
-import { trackCustomEvent, trackEvent } from '../services/metaPixel';
+import { trackCustomEvent, trackEvent, trackMetaEvent } from '../services/metaPixel';
 import { trackWorksideEvent } from '../services/worksideAnalytics.js';
 
 export default function HomePage() {
@@ -21,7 +21,13 @@ export default function HomePage() {
   };
 
   const handleVideoPlay = () => {
-    trackEvent('ViewContent', { content_name: 'SageSet demo video', content_category: 'video' });
+    trackMetaEvent({
+      eventName: 'ViewContent',
+      pixelParameters: {
+        content_name: 'SageSet demo video',
+        content_category: 'video',
+      },
+    });
   };
 
   return (

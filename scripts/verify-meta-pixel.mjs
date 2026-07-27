@@ -63,7 +63,11 @@ function startViteServer() {
     ['run', 'dev', '--', '--host', HOST, '--port', String(PORT)],
     {
       cwd: process.cwd(),
-      env: { ...process.env, BROWSER: 'none' },
+      env: {
+        ...process.env,
+        BROWSER: 'none',
+        ...(TEST_EVENT_CODE ? { VITE_META_TEST_EVENT_CODE: TEST_EVENT_CODE } : {}),
+      },
       shell: process.platform === 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
     }
@@ -140,11 +144,12 @@ function summarizeEvents(events) {
   }
   return events
     .map((event) => {
-      const [kind, name, parameters] = event.args || [];
+      const [kind, name, parameters, options] = event.args || [];
       return {
         kind,
         name,
         parameters: parameters || {},
+        options: options || {},
       };
     })
     .filter((event) => event.kind !== 'init');
@@ -177,6 +182,20 @@ async function runScenario(page, scenario, pixelRequests = []) {
       `Missing Meta Pixel event(s) on ${scenario.path}: ${missing.join(', ')}\n` +
         `Observed: ${JSON.stringify(summarizeEvents(events), null, 2)}`
     );
+  }
+
+  const viewContentEvents = events.filter((event) => eventNameFromCall(event) === 'ViewContent');
+  for (const event of viewContentEvents) {
+    const eventId = LIVE_MODE ? event.options?.eventID : event.args?.[3]?.eventID;
+    if (!/^vc_[0-9a-f-]{36}$/i.test(eventId || '')) {
+      throw new Error(
+        `ViewContent on ${scenario.path} did not include a shared UUID eventID.\n` +
+          `Observed: ${JSON.stringify(summarizeEvents(events), null, 2)}`
+      );
+    }
+  }
+  if (viewContentEvents.length > 1) {
+    throw new Error(`ViewContent fired ${viewContentEvents.length} times on ${scenario.path}; React duplicate suppression failed.`);
   }
 
   if (scenario.custom?.length) {
@@ -244,6 +263,22 @@ async function main() {
     for (const scenario of scenarios) {
       results.push(await runScenario(page, scenario, pixelRequests));
     }
+
+    await page.evaluate(() => {
+      localStorage.setItem('sageset.marketingConsent.v1', 'denied');
+    });
+    await page.goto(`${BASE_URL}/signup?consent_verification=denied`, {
+      waitUntil: 'networkidle2',
+      timeout: 30000,
+    });
+    await delay(500);
+    const deniedEvents = await getPixelEvents(page);
+    if (deniedEvents.some((event) => ['PageView', 'ViewContent'].includes(eventNameFromCall(event)))) {
+      throw new Error('Meta events fired after the shared marketing-consent decision was denied.');
+    }
+    await page.evaluate(() => {
+      localStorage.removeItem('sageset.marketingConsent.v1');
+    });
 
     console.log(`\nMeta Pixel Puppeteer verification passed${LIVE_MODE ? ' in live mode' : ''}.\n`);
     results.forEach((result) => {
