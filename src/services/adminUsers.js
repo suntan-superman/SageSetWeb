@@ -86,6 +86,9 @@ export async function getARChallengeRolloutForAdmin() {
   return await callAdminFunction('getARChallengeRollout', {});
 }
 
-export async function updateARChallengeRolloutForAdmin({ enabled }) {
-  return await callAdminFunction('updateARChallengeRolloutForAdmin', { enabled });
+export async function updateARChallengeRolloutForAdmin({ enabled, publicFeatures }) {
+  return await callAdminFunction('updateARChallengeRolloutForAdmin', {
+    ...(typeof enabled === 'boolean' ? { enabled } : {}),
+    ...(publicFeatures ? { publicFeatures } : {}),
+  });
 }

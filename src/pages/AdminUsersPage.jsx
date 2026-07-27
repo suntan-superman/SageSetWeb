@@ -154,25 +154,61 @@ function ARChallengeRolloutPanel() {
     }
   };
 
+  const updatePublicFeature = async (feature, enabled) => {
+    const labels = {
+      squat: 'AR squats',
+      pushup: 'AR push-ups',
+      smartReturn: 'Smart Return',
+    };
+    const verb = enabled ? 'publish' : 'hide';
+    if (!window.confirm(`Are you sure you want to ${verb} ${labels[feature]} for all users?`)) return;
+
+    setUpdating(true);
+    setError('');
+    try {
+      setRollout(
+        await updateARChallengeRolloutForAdmin({
+          publicFeatures: { [feature]: enabled },
+        })
+      );
+    } catch (updateError) {
+      setError(updateError?.message || 'Unable to update public feature availability.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const isEnabled = rollout?.enabled === true;
+  const publicFeatures = rollout?.publicFeatures || {};
 
   return (
     <section className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold text-white">AR Challenge Rollout</h2>
+            <h2 className="text-lg font-semibold text-white">Release & Tester Rollout</h2>
             <StatusChip tone={isEnabled ? 'amber' : 'emerald'}>
               {loading ? 'Checking policy' : isEnabled ? 'Controlled beta enabled' : 'Globally disabled'}
             </StatusChip>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-gray-300">
-            This server policy is the operational kill switch. An AR-capable beta build only shows challenges to users explicitly enrolled below;
-            both gates are checked whenever the app opens or returns to the foreground.
+            The AR master switch and each public launch switch are evaluated whenever the app opens or returns to the foreground.
+            Tester enrollments below can expose unreleased capabilities without creating a separate EAS binary.
           </p>
           <p className="mt-2 text-xs text-gray-400">
-            Phase 0 scope: push-ups and squats only. Front-camera push-ups remain out of scope.
+            Recommended launch state: AR enabled, squats public, push-ups hidden, Smart Return hidden.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <StatusChip tone={publicFeatures.squat ? 'emerald' : 'gray'}>
+              Squats {publicFeatures.squat ? 'public' : 'tester-only'}
+            </StatusChip>
+            <StatusChip tone={publicFeatures.pushup ? 'emerald' : 'gray'}>
+              Push-ups {publicFeatures.pushup ? 'public' : 'tester-only'}
+            </StatusChip>
+            <StatusChip tone={publicFeatures.smartReturn ? 'emerald' : 'gray'}>
+              Smart Return {publicFeatures.smartReturn ? 'public' : 'tester-only'}
+            </StatusChip>
+          </div>
           {rollout?.updatedAt ? <p className="mt-2 text-xs text-gray-500">Last changed {formatDateTime(rollout.updatedAt)}</p> : null}
           {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
         </div>
@@ -195,6 +231,28 @@ function ARChallengeRolloutPanel() {
           >
             {updating ? 'Updating...' : isEnabled ? 'Disable AR globally' : 'Enable controlled beta'}
           </button>
+        </div>
+        <div className="mt-4 flex w-full flex-wrap gap-2 border-t border-amber-500/20 pt-4">
+          {[
+            ['squat', 'AR squats'],
+            ['pushup', 'AR push-ups'],
+            ['smartReturn', 'Smart Return'],
+          ].map(([feature, label]) => {
+            const published = publicFeatures[feature] === true;
+            return (
+              <button
+                key={feature}
+                type="button"
+                onClick={() => updatePublicFeature(feature, !published)}
+                disabled={loading || updating}
+                className={`rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  published ? 'bg-red-700 hover:bg-red-600' : 'bg-blue-700 hover:bg-blue-600'
+                }`}
+              >
+                {published ? `Hide ${label}` : `Publish ${label}`}
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -722,7 +780,13 @@ export default function AdminUsersPage() {
                             <StatusChip tone="emerald">Demo access</StatusChip>
                           ) : null}
                           {selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? (
-                            <StatusChip tone="amber">AR beta enrolled</StatusChip>
+                            <StatusChip tone="amber">AR squat tester</StatusChip>
+                          ) : null}
+                          {selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? (
+                            <StatusChip tone="amber">Push-up tester</StatusChip>
+                          ) : null}
+                          {selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? (
+                            <StatusChip tone="blue">Smart Return tester</StatusChip>
                           ) : null}
                         </div>
 
@@ -807,7 +871,7 @@ export default function AdminUsersPage() {
 
                     <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-6">
                       <h3 className="text-lg font-semibold text-white">Access Controls</h3>
-                      <div className="mt-4 grid gap-3 md:grid-cols-5">
+                      <div className="mt-4 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
                         <DetailRow label="Trial" value={selectedDetail.rawUserData?.trial?.status || 'Not set'} />
                         <DetailRow label="Subscription" value={selectedDetail.rawUserData?.subscription?.status || 'Not set'} />
                         <DetailRow label="Source" value={selectedDetail.rawUserData?.subscription?.source || 'Not set'} />
@@ -815,6 +879,14 @@ export default function AdminUsersPage() {
                         <DetailRow
                           label="AR Challenge Beta"
                           value={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Enrolled' : 'Not enrolled'}
+                        />
+                        <DetailRow
+                          label="Push-up Beta"
+                          value={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Enrolled' : 'Not enrolled'}
+                        />
+                        <DetailRow
+                          label="Smart Return Beta"
+                          value={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Enrolled' : 'Not enrolled'}
                         />
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
@@ -829,8 +901,20 @@ export default function AdminUsersPage() {
                           [
                             'toggle_arkit_beta',
                             selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true
-                              ? 'Disable AR beta'
-                              : 'Enable AR beta',
+                              ? 'Disable AR squat test'
+                              : 'Enable AR squat test',
+                          ],
+                          [
+                            'toggle_pushup_beta',
+                            selectedDetail.rawUserData?.betaFlags?.arkitPushups === true
+                              ? 'Disable push-up test'
+                              : 'Enable push-up test',
+                          ],
+                          [
+                            'toggle_smart_return_beta',
+                            selectedDetail.rawUserData?.betaFlags?.smartReturn === true
+                              ? 'Disable Smart Return test'
+                              : 'Enable Smart Return test',
                           ],
                           ['recalculate', 'Recalculate'],
                         ].map(([action, label]) => (

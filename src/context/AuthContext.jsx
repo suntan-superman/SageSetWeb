@@ -116,6 +116,11 @@ function buildUserProfile({
     featureFlags: {
       arkitChallengesEnabled: false,
     },
+    betaFlags: {
+      arkitChallenges: false,
+      arkitPushups: false,
+      smartReturn: false,
+    },
   };
 }
 
