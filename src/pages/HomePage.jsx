@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { trackCustomEvent, trackEvent, trackMetaEvent } from '../services/metaPixel';
 import { trackWorksideEvent } from '../services/worksideAnalytics.js';
+import ProductEvolutionSection from '../components/ProductEvolutionSection.jsx';
 
 export default function HomePage() {
   const handleDownloadClick = () => {
@@ -104,6 +105,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <ProductEvolutionSection compact />
 
       {/* App Preview / Video Section */}
       <section className="py-8 bg-white">

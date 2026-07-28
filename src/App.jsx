@@ -18,6 +18,8 @@ import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import AdminExercisesPage from './pages/AdminExercisesPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminUsagePage from './pages/AdminUsagePage.jsx';
+import AdminReleasesPage from './pages/AdminReleasesPage.jsx';
+import ProductUpdatesPage from './pages/ProductUpdatesPage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { initMetaPixel, trackPageView } from './services/metaPixel.js';
 import { flushWorksideEvents, trackWorksideEvent } from './services/worksideAnalytics.js';
@@ -184,6 +186,14 @@ export default function App() {
             </ProtectedAdminRoute>
           }
         />
+        <Route
+          path="/admin/releases"
+          element={
+            <ProtectedAdminRoute>
+              <AdminReleasesPage />
+            </ProtectedAdminRoute>
+          }
+        />
         
         {/* Public routes with Layout */}
         <Route path="/" element={<Layout><HomePage /></Layout>} />
@@ -236,6 +246,7 @@ export default function App() {
         <Route path="/support" element={<Layout><SupportPage /></Layout>} />
         <Route path="/contact" element={<Layout><SupportPage /></Layout>} />
         <Route path="/account-deletion" element={<Layout><AccountDeletionPage /></Layout>} />
+        <Route path="/upcoming" element={<Layout><ProductUpdatesPage /></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>

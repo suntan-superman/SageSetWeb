@@ -19,11 +19,13 @@ export default function Layout({ children }) {
         { to: '/dashboard/nutrition', label: 'Nutrition' },
         { to: '/dashboard/billing', label: 'Billing' },
         { to: '/dashboard/account', label: 'Account' },
+        { to: '/upcoming', label: "What's new" },
       ]
     : [
         { to: '/features', label: 'Features' },
         { to: '/nutrition', label: 'Nutrition' },
         { to: '/pricing', label: 'Pricing' },
+        { to: '/upcoming', label: "What's new" },
         { to: '/download', label: 'Download' },
         { to: '/login', label: 'Sign in' },
       ];

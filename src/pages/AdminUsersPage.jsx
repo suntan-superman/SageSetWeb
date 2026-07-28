@@ -296,17 +296,17 @@ function ARChallengeRolloutPanel() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold text-white">Release & Tester Rollout</h2>
+            <h2 className="text-lg font-semibold text-white">Feature Rollout</h2>
             <HelpTooltip
-              label="About release and tester rollout"
-              text="Public switches expose a capability to all eligible members. Per-user tester controls farther down expose an unpublished capability only to the selected account."
+              label="About feature rollout"
+              text="Public switches expose a capability to all eligible members. Per-user feature access farther down exposes an unpublished capability only to the selected account."
             />
             <StatusChip tone={isEnabled ? 'amber' : 'emerald'}>
-              {loading ? 'Checking policy' : isEnabled ? 'Controlled beta enabled' : 'Globally disabled'}
+              {loading ? 'Checking policy' : isEnabled ? 'Controlled rollout enabled' : 'Globally disabled'}
             </StatusChip>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-gray-300">
-            The AR master switch gates squat and push-up camera experiences. Public switches and tester enrollments are
+            The AR master switch gates squat and push-up camera experiences. Public switches and per-user feature access are
             evaluated whenever the app opens or returns to the foreground, without requiring a separate EAS binary.
             Smart Return check-in access is independent of both the AR master switch and the standard Take a Break action.
           </p>
@@ -344,7 +344,7 @@ function ARChallengeRolloutPanel() {
               isEnabled ? 'bg-red-700 hover:bg-red-600' : 'bg-emerald-700 hover:bg-emerald-600'
             }`}
           >
-            {updating ? 'Updating...' : isEnabled ? 'Disable AR globally' : 'Enable controlled beta'}
+            {updating ? 'Updating...' : isEnabled ? 'Disable AR globally' : 'Enable controlled rollout'}
           </button>
         </div>
         <div className="mt-4 grid w-full gap-3 border-t border-amber-500/20 pt-4 md:grid-cols-3">
@@ -370,6 +370,12 @@ function ARChallengeRolloutPanel() {
                 >
                   {published ? `Hide ${label}` : `Publish ${label}`}
                 </button>
+                <a
+                  href={`/admin/releases?feature=${feature}`}
+                  className="mt-2 block text-center text-xs font-semibold text-emerald-300 hover:text-emerald-200"
+                >
+                  Create release announcement
+                </a>
               </div>
             );
           })}
@@ -795,9 +801,9 @@ export default function AdminUsersPage() {
         grant_premium_7: 'Seven days of manual premium access granted.',
         revoke_premium: 'Manual premium access revoked.',
         toggle_demo_account: 'Demo-account access updated.',
-        toggle_arkit_beta: 'AR squat test access updated.',
-        toggle_pushup_beta: 'Push-up test access updated.',
-        toggle_smart_return_beta: 'Smart Return check-in test access updated. Take a Break is unchanged.',
+        toggle_arkit_beta: 'AR squat feature access updated.',
+        toggle_pushup_beta: 'Push-up feature access updated.',
+        toggle_smart_return_beta: 'Smart Return feature access updated. Take a Break is unchanged.',
         recalculate: 'Entitlements recalculated.',
       };
       setActionMessage(`${actionLabels[action] || 'Access updated.'}${demoSuffix}`);
@@ -1095,8 +1101,8 @@ export default function AdminUsersPage() {
                         </section>
 
                         <section className="rounded-xl border border-gray-700 bg-gray-900/25 p-4">
-                          <SectionHeading help="Per-user access to demo behavior and capabilities that are not yet public. Changes are reflected when the app opens, signs in, or returns to the foreground.">
-                            Testing Access
+                          <SectionHeading help="Per-user access to demo behavior and capabilities that are moving through a controlled rollout. Changes are reflected when the app opens, signs in, or returns to the foreground.">
+                            Feature Access
                           </SectionHeading>
                           <div className="mt-3">
                             <DetailRow label="Demo Account" value={selectedDetail.rawUserData?.accountFlags?.demo ? 'Enabled' : 'Disabled'} help="Grants demo-account entitlement behavior. It is separate from AR and Smart Return testing." />
@@ -1106,9 +1112,9 @@ export default function AdminUsersPage() {
                           </div>
                           <div className="mt-4 grid gap-3">
                             <AccessActionButton action="toggle_demo_account" label={selectedDetail.rawUserData?.accountFlags?.demo ? 'Disable demo account' : 'Enable demo account'} help="Toggles this user's demo-account entitlement." onAction={handleAccessAction} loadingAction={accessActionLoading} />
-                            <AccessActionButton action="toggle_arkit_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Disable AR squat test' : 'Enable AR squat test'} help="Toggles per-user AR squat testing. The global AR master switch must also be enabled." onAction={handleAccessAction} loadingAction={accessActionLoading} />
-                            <AccessActionButton action="toggle_pushup_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Disable push-up test' : 'Enable push-up test'} help="Toggles per-user AR push-up testing. The global AR master switch must also be enabled." onAction={handleAccessAction} loadingAction={accessActionLoading} />
-                            <AccessActionButton action="toggle_smart_return_beta" label={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Disable Smart Return check-in test' : 'Enable Smart Return check-in test'} help="Toggles only the Smart Return check-in and recommendations. It does not remove the Take a Break action." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_arkit_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Remove AR squat access' : 'Grant AR squat access'} help="Toggles per-user AR squat access during controlled rollout. The global AR master switch must also be enabled." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_pushup_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Remove push-up access' : 'Grant push-up access'} help="Toggles per-user AR push-up access during controlled rollout. The global AR master switch must also be enabled." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_smart_return_beta" label={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Remove Smart Return access' : 'Grant Smart Return access'} help="Toggles only the Smart Return check-in and recommendations. It does not remove the Take a Break action." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                           </div>
                         </section>
 

@@ -24,7 +24,7 @@ export default {
     links: { enabled: false, blocking: false }
   },
   requiredEnv: [],
-  routes: ["/", "/pricing", "/features", "/login", "/signup", "/billing/success", "/billing/cancel"],
+  routes: ["/", "/pricing", "/features", "/upcoming", "/login", "/signup", "/billing/success", "/billing/cancel"],
   expectedMetaPixelId: "2504506900022362",
   expectedMetaEvents: [
     {

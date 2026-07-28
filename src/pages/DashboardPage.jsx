@@ -13,12 +13,16 @@ import {
 } from '@syncfusion/ej2-react-schedule';
 import {
   ArrowPathIcon,
+  BellAlertIcon,
   CalendarDaysIcon,
+  ChatBubbleLeftRightIcon,
   ChartBarIcon,
   CheckCircleIcon,
   CreditCardIcon,
+  EnvelopeIcon,
   FireIcon,
   HeartIcon,
+  MegaphoneIcon,
   PrinterIcon,
   ShareIcon,
   UserCircleIcon,
@@ -29,6 +33,7 @@ import { loadBillingStatus, openCustomerPortal, refreshEntitlements, startChecko
 import { formatWorkoutShareText, loadMemberDashboard } from '../services/memberDashboard.js';
 import { acceptPlanReview, dismissPlanReview, loadRecentPlanReviews, requestPlanReview } from '../services/planReviews.js';
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../config/storeLinks';
+import { updateProductUpdatePreference } from '../services/productUpdates.js';
 
 const dashboardNav = [
   { path: '/dashboard', label: 'Overview' },
@@ -249,10 +254,10 @@ export default function DashboardPage({ section = 'overview' }) {
             onRefresh={handleRefreshEntitlements}
           />
         ) : section === 'account' ? (
-          <InfoPanel
-            icon={UserCircleIcon}
-            title="Account"
-            body={`Signed in as ${user?.email || 'SageSet member'}. Account support, privacy, and data deletion tools remain available even if premium access is inactive.`}
+          <AccountPanel
+            user={user}
+            userData={userData}
+            onRefresh={refreshUserData}
           />
         ) : section === 'progress' ? (
           <ProgressPanel metrics={metrics} summary={liveSummary} loading={dashboardLoading} />
@@ -916,6 +921,152 @@ function InfoPanel({ icon: Icon, title, body }) {
       <Icon className="h-8 w-8 text-sage-700" />
       <h2 className="mt-4 text-2xl font-bold text-gray-900">{title}</h2>
       <p className="mt-2 max-w-3xl text-gray-600">{body}</p>
+    </div>
+  );
+}
+
+function AccountPanel({ user, userData, onRefresh }) {
+  const [productUpdatesEnabled, setProductUpdatesEnabled] = useState(
+    userData?.notificationPreferences?.marketing === true
+  );
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('success');
+  const preferences = userData?.notificationPreferences || {};
+  const contact = userData?.contact || {};
+
+  useEffect(() => {
+    setProductUpdatesEnabled(userData?.notificationPreferences?.marketing === true);
+  }, [userData?.notificationPreferences?.marketing]);
+
+  const savePreference = async () => {
+    if (!user?.uid || saving) return;
+    const nextValue = !productUpdatesEnabled;
+    setSaving(true);
+    setMessage('');
+    setMessageTone('success');
+    try {
+      await updateProductUpdatePreference(user.uid, nextValue);
+      setProductUpdatesEnabled(nextValue);
+      await onRefresh?.();
+      setMessage(
+        nextValue
+          ? 'Product release updates are enabled.'
+          : 'Product release updates are disabled.'
+      );
+    } catch (error) {
+      setMessageTone('error');
+      setMessage(error?.message || 'Unable to update this preference.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const channels = [
+    {
+      label: 'Email',
+      icon: EnvelopeIcon,
+      ready: Boolean(user?.email) && user?.emailVerified === true && preferences.email !== false,
+      detail:
+        user?.emailVerified === true
+          ? user?.email || 'Verified email'
+          : 'Verify your email to receive updates',
+    },
+    {
+      label: 'Push notification',
+      icon: BellAlertIcon,
+      ready: preferences.push !== false,
+      detail: preferences.push === false ? 'Disabled in notification preferences' : 'Delivered to registered devices',
+    },
+    {
+      label: 'SMS',
+      icon: ChatBubbleLeftRightIcon,
+      ready:
+        preferences.sms === true &&
+        contact.smsOptIn === true &&
+        contact.smsVerificationStatus === 'verified',
+      detail:
+        contact.smsVerificationStatus === 'verified'
+          ? contact.phone || userData?.phone || 'Verified mobile number'
+          : 'Phone verification required',
+    },
+  ];
+
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <UserCircleIcon className="h-8 w-8 text-sage-700" />
+        <h2 className="mt-4 text-2xl font-bold text-gray-900">Account</h2>
+        <p className="mt-2 max-w-3xl text-gray-600">
+          Signed in as {user?.email || 'SageSet member'}. Account support, privacy, and data
+          deletion tools remain available even if premium access is inactive.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-sage-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
+          <div className="max-w-2xl">
+            <span className="inline-flex rounded-xl bg-sage-100 p-3">
+              <MegaphoneIcon className="h-6 w-6 text-sage-700" />
+            </span>
+            <p className="mt-4 text-sm font-bold uppercase tracking-wide text-sage-700">
+              You keep progressing. So do we.
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-gray-900">Product release updates</h2>
+            <p className="mt-3 leading-7 text-gray-600">
+              Get occasional announcements when SageSet adds a meaningful new workout,
+              coaching, nutrition, or progress feature. Delivery uses only the contact
+              channels already enabled and verified on your account.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={savePreference}
+            disabled={saving}
+            className={`rounded-xl px-5 py-3 text-sm font-semibold transition disabled:opacity-60 ${
+              productUpdatesEnabled
+                ? 'border border-gray-300 bg-white text-gray-700 hover:border-red-300 hover:text-red-700'
+                : 'bg-sage-700 text-white hover:bg-sage-800'
+            }`}
+          >
+            {saving
+              ? 'Saving…'
+              : productUpdatesEnabled
+                ? 'Turn off product updates'
+                : 'Enable product updates'}
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {channels.map((channel) => {
+            const Icon = channel.icon;
+            return (
+              <div key={channel.label} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Icon className="h-5 w-5 text-sage-700" />
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-bold ${
+                      channel.ready
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {channel.ready ? 'Eligible' : 'Unavailable'}
+                  </span>
+                </div>
+                <p className="mt-3 font-semibold text-gray-900">{channel.label}</p>
+                <p className="mt-1 text-xs leading-5 text-gray-500">{channel.detail}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="mt-5 text-xs leading-5 text-gray-500">
+          By enabling product updates, you agree to receive occasional feature and release
+          announcements through eligible channels. You can turn them off here at any time.
+        </p>
+        {message ? <StatusBanner tone={messageTone} text={message} /> : null}
+      </div>
     </div>
   );
 }

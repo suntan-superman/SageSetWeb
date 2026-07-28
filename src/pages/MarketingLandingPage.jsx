@@ -12,6 +12,7 @@ import {
 import { trackCustomEvent, trackEvent, trackMetaEvent } from '../services/metaPixel';
 import { trackWorksideEvent } from '../services/worksideAnalytics.js';
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../config/storeLinks';
+import ProductEvolutionSection from '../components/ProductEvolutionSection.jsx';
 
 const pageContent = {
   '/fitness-ai-coach': {
@@ -196,6 +197,7 @@ export default function MarketingLandingPage({ path = '/' }) {
           ))}
         </div>
       </section>
+      {path === '/features' ? <ProductEvolutionSection compact /> : null}
     </div>
   );
 }
