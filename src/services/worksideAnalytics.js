@@ -14,6 +14,8 @@ const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const IS_LOCAL_DEVELOPMENT =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const IS_META_RELEASE_CHECK =
+  new URLSearchParams(window.location.search).get('release_check') === 'meta';
 
 const createId = () => crypto.randomUUID();
 const safeParse = (value, fallback) => {
@@ -115,8 +117,12 @@ export async function trackWorksideEvent(eventName, properties = {}, options = {
   // Local release checks should validate the site without polluting staging
   // analytics or depending on a cross-origin collector. Production behavior is
   // unchanged, including queued retry delivery.
-  if (IS_LOCAL_DEVELOPMENT) {
-    return { suppressed: true, reason: 'local_development', eventId: event.eventId };
+  if (IS_LOCAL_DEVELOPMENT || IS_META_RELEASE_CHECK) {
+    return {
+      suppressed: true,
+      reason: IS_LOCAL_DEVELOPMENT ? 'local_development' : 'meta_release_check',
+      eventId: event.eventId,
+    };
   }
   try {
     return await send(event);
@@ -129,7 +135,9 @@ export async function trackWorksideEvent(eventName, properties = {}, options = {
 }
 
 export async function flushWorksideEvents() {
-  if (IS_LOCAL_DEVELOPMENT) return { sent: 0, remaining: 0, suppressed: true };
+  if (IS_LOCAL_DEVELOPMENT || IS_META_RELEASE_CHECK) {
+    return { sent: 0, remaining: 0, suppressed: true };
+  }
   if (!auth.currentUser && !appCheck) return { sent: 0, remaining: readQueue().length };
   const now = Date.now();
   const remaining = [];

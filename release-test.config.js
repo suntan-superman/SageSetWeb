@@ -139,7 +139,13 @@ export default {
         forbiddenFields: ["email", "phone", "name", "password"]
       }
     },
-    routes: ["/", "/signup", "/pricing", "/billing/success", "/billing/cancel"]
+    routes: [
+      "/?release_check=meta",
+      "/signup?release_check=meta",
+      "/pricing?release_check=meta",
+      "/billing/success?release_check=meta",
+      "/billing/cancel?release_check=meta"
+    ]
   },
   auth: {
     enabled: true,

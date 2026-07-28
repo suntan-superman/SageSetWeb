@@ -22,7 +22,14 @@ const app = initializeApp(firebaseConfig);
 const appCheckSiteKey =
   import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY ||
   '6LdFOFYtAAAAAAcaljNPZC_aiN7aY22xpTm_8dg4';
-const appCheck = appCheckSiteKey
+// Meta release certification uses an explicitly marked route and should not
+// create first-party analytics or request a real-browser App Check attestation.
+// Omitting App Check never bypasses server enforcement; protected requests
+// remain protected and would be rejected without a valid token.
+const isMetaReleaseCheck =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).get('release_check') === 'meta';
+const appCheck = appCheckSiteKey && !isMetaReleaseCheck
   ? initializeAppCheck(app, {
       provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
       isTokenAutoRefreshEnabled: true,
