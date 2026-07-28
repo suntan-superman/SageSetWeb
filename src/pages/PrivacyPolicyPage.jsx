@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
             Privacy Policy
           </h1>
           <p className="mt-4 text-gray-500">
-            Last updated: January 2026
+            Last updated: July 28, 2026
           </p>
         </div>
 
@@ -61,6 +61,23 @@ export default function PrivacyPolicyPage() {
             <p>
               If you enable notifications, we may collect and store device push tokens to deliver reminders. 
               You can disable notifications in your device settings.
+            </p>
+
+            <h3>2.5 Camera and Optional AR Tester Recordings</h3>
+            <p>
+              Camera access is required only while you use camera-based features,
+              including AR exercise tracking and meal or progress photos. During
+              controlled AR testing, eligible testers may separately choose to
+              record an exercise session for review. This recording option is off
+              by default, begins only after the workout countdown, and records
+              video without microphone audio.
+            </p>
+            <p>
+              After a recorded session, the tester chooses whether to upload the
+              recording securely for SageSet review, save it to the device photo
+              library, or delete it. Uploaded tester recordings are accessible
+              only to the account owner and authorized SageSet administrators and
+              are automatically deleted after 14 days.
             </p>
           </Section>
 

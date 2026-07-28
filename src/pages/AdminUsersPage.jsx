@@ -11,12 +11,14 @@ import {
   QuestionMarkCircleIcon,
   UserCircleIcon,
   UsersIcon,
+  VideoCameraIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import AdminHeader from '../components/AdminHeader.jsx';
 import {
   getUserAdminDetail,
   getUserAdminPlanDetail,
+  loadARSessionReviewBlob,
   getARChallengeRolloutForAdmin,
   listUsersForAdmin,
   sendUserExpoNotification,
@@ -36,6 +38,11 @@ const formatCompactDate = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString();
+};
+
+const formatFileSize = (bytes) => {
+  const value = Number(bytes || 0);
+  return value > 0 ? `${(value / (1024 * 1024)).toFixed(1)} MB` : 'Unknown size';
 };
 
 const formatUserLabel = (user) =>
@@ -560,6 +567,7 @@ export default function AdminUsersPage() {
   const [actionError, setActionError] = useState('');
   const [sendingNotification, setSendingNotification] = useState(false);
   const [accessActionLoading, setAccessActionLoading] = useState('');
+  const [reviewOpeningId, setReviewOpeningId] = useState('');
   const detailRequestRef = useRef(0);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
@@ -736,6 +744,31 @@ export default function AdminUsersPage() {
       setActionError(error?.message || 'Failed to send notification.');
     } finally {
       setSendingNotification(false);
+    }
+  };
+
+  const handleOpenSessionReview = async (review) => {
+    if (!review?.storagePath || reviewOpeningId) return;
+    const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
+    setReviewOpeningId(review.id);
+    setActionError('');
+    try {
+      const blob = await loadARSessionReviewBlob(review.storagePath);
+      const objectUrl = URL.createObjectURL(blob);
+      if (previewWindow) {
+        previewWindow.location.href = objectUrl;
+      } else {
+        window.open(objectUrl, '_blank', 'noopener,noreferrer');
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10 * 60 * 1000);
+    } catch (error) {
+      previewWindow?.close();
+      console.warn('Failed to open AR tester recording:', error);
+      setActionError(
+        error?.message || 'The tester recording could not be opened.'
+      );
+    } finally {
+      setReviewOpeningId('');
     }
   };
 
@@ -1129,6 +1162,63 @@ export default function AdminUsersPage() {
                             <AccessActionButton action="recalculate" label="Recalculate entitlements" help="Re-runs entitlement calculation without changing tester enrollment flags." onAction={handleAccessAction} loadingAction={accessActionLoading} tone="blue" />
                           </div>
                         </section>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-6">
+                      <SectionHeading help="Video-only clips that testers explicitly chose to upload after an AR challenge. Recordings expire automatically after 14 days.">
+                        AR Tester Session Reviews
+                      </SectionHeading>
+                      <p className="mt-2 text-sm text-gray-400">
+                        These clips contain no microphone audio. Opening a clip
+                        uses your current admin session and does not create a
+                        public download link.
+                      </p>
+                      <div className="mt-4 grid gap-3">
+                        {Array.isArray(selectedDetail.arSessionReviews) &&
+                        selectedDetail.arSessionReviews.length > 0 ? (
+                          selectedDetail.arSessionReviews.map((review) => (
+                            <div
+                              key={review.id}
+                              className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-700 bg-gray-900/40 p-4"
+                            >
+                              <div className="flex min-w-0 items-start gap-3">
+                                <div className="rounded-lg bg-emerald-500/15 p-2 text-emerald-300">
+                                  <VideoCameraIcon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <div className="font-medium text-white">
+                                    {review.exercise || 'AR challenge'} •{' '}
+                                    {review.cameraPosition || 'camera'}
+                                  </div>
+                                  <div className="mt-1 text-xs text-gray-400">
+                                    {formatDateTime(review.uploadedAt || review.createdAt)}
+                                    {' • '}
+                                    {formatFileSize(review.fileSizeBytes)}
+                                    {' • '}
+                                    {Number(review.reps || 0)} reps
+                                  </div>
+                                  <div className="mt-1 text-xs text-amber-300">
+                                    Expires {formatDateTime(review.expiresAt)}
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenSessionReview(review)}
+                                disabled={Boolean(reviewOpeningId)}
+                                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-wait disabled:bg-gray-700"
+                              >
+                                <VideoCameraIcon className="h-4 w-4" />
+                                {reviewOpeningId === review.id ? 'Opening...' : 'Open Recording'}
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-gray-700 px-4 py-6 text-center text-sm text-gray-400">
+                            No active tester recordings for this user.
+                          </div>
+                        )}
                       </div>
                     </div>
 

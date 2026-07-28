@@ -1,5 +1,6 @@
 import { httpsCallable } from 'firebase/functions';
-import { auth, functions } from '../config/firebase';
+import { getBlob, ref } from 'firebase/storage';
+import { auth, functions, storage } from '../config/firebase';
 
 const ADMIN_TOKEN_REFRESH_TTL_MS = 60 * 1000;
 let lastAdminTokenRefreshAt = 0;
@@ -58,6 +59,14 @@ export async function listUsersForAdmin(limit = 250) {
 
 export async function getUserAdminDetail(uid) {
   return await callAdminFunction('getUserAdminDetail', { uid });
+}
+
+export async function loadARSessionReviewBlob(storagePath) {
+  if (!String(storagePath || '').startsWith('ar-session-reviews/')) {
+    throw new Error('Invalid AR session review path.');
+  }
+  await ensureFreshAdminToken();
+  return getBlob(ref(storage, storagePath), 150 * 1024 * 1024);
 }
 
 export async function getUserAdminPlanDetail(uid, planId) {
