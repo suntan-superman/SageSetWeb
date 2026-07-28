@@ -567,6 +567,7 @@ export default function AdminUsersPage() {
   const [actionError, setActionError] = useState('');
   const [sendingNotification, setSendingNotification] = useState(false);
   const [accessActionLoading, setAccessActionLoading] = useState('');
+  const [notifyARAccessChanges, setNotifyARAccessChanges] = useState(true);
   const [reviewOpeningId, setReviewOpeningId] = useState('');
   const detailRequestRef = useRef(0);
   const deferredSearchTerm = useDeferredValue(searchTerm);
@@ -779,7 +780,14 @@ export default function AdminUsersPage() {
     setActionError('');
 
     try {
-      const result = await updateUserAccessForAdmin({ uid: selectedUserId, action });
+      const shouldNotify =
+        notifyARAccessChanges &&
+        (action === 'toggle_arkit_beta' || action === 'toggle_pushup_beta');
+      const result = await updateUserAccessForAdmin({
+        uid: selectedUserId,
+        action,
+        notifyUser: shouldNotify,
+      });
       if (result?.rawUserData || result?.access) {
         setSelectedDetail((current) => {
           if (!current || current.profile?.uid !== selectedUserId) return current;
@@ -839,7 +847,19 @@ export default function AdminUsersPage() {
         toggle_smart_return_beta: 'Smart Return feature access updated. Take a Break is unchanged.',
         recalculate: 'Entitlements recalculated.',
       };
-      setActionMessage(`${actionLabels[action] || 'Access updated.'}${demoSuffix}`);
+      const notificationLabels = {
+        sent: ' The user was notified.',
+        skipped_disabled: ' Access changed; the user has push notifications disabled.',
+        skipped_no_token: ' Access changed; this user has no saved push token.',
+        failed: ' Access changed, but the push notification could not be delivered.',
+      };
+      const notificationSuffix =
+        result?.notification?.requested === true
+          ? notificationLabels[result.notification.status] || ''
+          : '';
+      setActionMessage(
+        `${actionLabels[action] || 'Access updated.'}${demoSuffix}${notificationSuffix}`
+      );
     } catch (error) {
       console.warn('Failed to update user access:', error);
       setActionError(error?.message || 'Failed to update user access.');
@@ -1134,7 +1154,7 @@ export default function AdminUsersPage() {
                         </section>
 
                         <section className="rounded-xl border border-gray-700 bg-gray-900/25 p-4">
-                          <SectionHeading help="Per-user access to demo behavior and capabilities that are moving through a controlled rollout. Changes are reflected when the app opens, signs in, or returns to the foreground.">
+                          <SectionHeading help="Per-user access to demo behavior and capabilities that are moving through a controlled rollout. The mobile app refreshes on sign-in, foreground resume, every five minutes while active, and whenever Challenges opens.">
                             Feature Access
                           </SectionHeading>
                           <div className="mt-3">
@@ -1145,10 +1165,24 @@ export default function AdminUsersPage() {
                           </div>
                           <div className="mt-4 grid gap-3">
                             <AccessActionButton action="toggle_demo_account" label={selectedDetail.rawUserData?.accountFlags?.demo ? 'Disable demo account' : 'Enable demo account'} help="Toggles this user's demo-account entitlement." onAction={handleAccessAction} loadingAction={accessActionLoading} />
-                            <AccessActionButton action="toggle_arkit_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Remove AR squat access' : 'Grant AR squat access'} help="Toggles per-user AR squat access during controlled rollout. The global AR master switch must also be enabled." onAction={handleAccessAction} loadingAction={accessActionLoading} />
-                            <AccessActionButton action="toggle_pushup_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Remove push-up access' : 'Grant push-up access'} help="Toggles per-user AR push-up access during controlled rollout. The global AR master switch must also be enabled." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_arkit_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Remove AR squat access' : 'Grant AR squat access'} help="Toggles per-user AR squat access during controlled rollout. The global AR master switch must also be enabled. If the notification option below is selected, SageSet sends an informational push when possible." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_pushup_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Remove push-up access' : 'Grant push-up access'} help="Toggles per-user AR push-up access during controlled rollout. The global AR master switch must also be enabled. If the notification option below is selected, SageSet sends an informational push when possible." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                             <AccessActionButton action="toggle_smart_return_beta" label={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Remove Smart Return access' : 'Grant Smart Return access'} help="Toggles only the Smart Return check-in and recommendations. It does not remove the Take a Break action." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                           </div>
+                          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-700 bg-gray-950/35 p-3 text-sm text-gray-300">
+                            <input
+                              type="checkbox"
+                              checked={notifyARAccessChanges}
+                              onChange={(event) => setNotifyARAccessChanges(event.target.checked)}
+                              className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500"
+                            />
+                            <span>
+                              Notify user about AR access changes
+                              <span className="mt-1 block text-xs leading-5 text-gray-500">
+                                Applies to squat and push-up tester access. Delivery requires the user to have push notifications enabled and a valid device token.
+                              </span>
+                            </span>
+                          </label>
                         </section>
 
                         <section className="rounded-xl border border-gray-700 bg-gray-900/25 p-4">
