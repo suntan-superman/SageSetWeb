@@ -60,6 +60,10 @@ export async function getUserAdminDetail(uid) {
   return await callAdminFunction('getUserAdminDetail', { uid });
 }
 
+export async function getUserAdminPlanDetail(uid, planId) {
+  return await callAdminFunction('getUserAdminPlanDetail', { uid, planId });
+}
+
 export async function sendUserExpoNotification({ uid, title, body, data = {} }) {
   return await callAdminFunction('sendUserExpoNotification', {
     uid,

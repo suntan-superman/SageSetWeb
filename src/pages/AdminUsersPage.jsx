@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowPathIcon,
@@ -8,6 +8,7 @@ import {
   ClipboardDocumentListIcon,
   DevicePhoneMobileIcon,
   MagnifyingGlassIcon,
+  QuestionMarkCircleIcon,
   UserCircleIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
@@ -15,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import AdminHeader from '../components/AdminHeader.jsx';
 import {
   getUserAdminDetail,
+  getUserAdminPlanDetail,
   getARChallengeRolloutForAdmin,
   listUsersForAdmin,
   sendUserExpoNotification,
@@ -55,19 +57,34 @@ const formatExercisePrescription = (exercise) => {
   return `${sets} set${Number(sets) === 1 ? '' : 's'} x ${reps}${rest}`;
 };
 
-const buildDefaultExpandedPlans = (detail) => {
-  const plans = Array.isArray(detail?.plans) ? detail.plans : [];
-  if (plans.length === 0) return {};
+const mergePlanDetail = (detail, loadedPlan) => {
+  if (!detail || !loadedPlan?.id) return detail;
+  const plans = (Array.isArray(detail.plans) ? detail.plans : []).map((plan) =>
+    plan.id === loadedPlan.id ? loadedPlan : plan
+  );
+  const loadedPlans = plans.filter((plan) => plan.detailsLoaded === true);
+  const loadedStats = loadedPlans.reduce(
+    (acc, plan) => ({
+      dayCount: acc.dayCount + Number(plan.stats?.dayCount || 0),
+      workoutCount: acc.workoutCount + Number(plan.stats?.workoutCount || 0),
+      exerciseCount: acc.exerciseCount + Number(plan.stats?.exerciseCount || 0),
+    }),
+    { dayCount: 0, workoutCount: 0, exerciseCount: 0 }
+  );
 
-  return plans.reduce((acc, plan, index) => {
-    if (plan.active || plans.length === 1 || index === 0) {
-      acc[plan.id] = true;
-    }
-    return acc;
-  }, {});
+  return {
+    ...detail,
+    plans,
+    planDetailsLoaded: plans.length > 0 && loadedPlans.length === plans.length,
+    stats: {
+      ...(detail.stats || {}),
+      ...loadedStats,
+      loadedPlanCount: loadedPlans.length,
+    },
+  };
 };
 
-function StatCard({ icon: Icon, label, value, tone = 'emerald' }) {
+function StatCard({ icon: Icon, label, value, tone = 'emerald', help = '' }) {
   const toneClasses = {
     emerald: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
     blue: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
@@ -80,7 +97,10 @@ function StatCard({ icon: Icon, label, value, tone = 'emerald' }) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-2xl font-semibold text-white">{value}</div>
-          <div className="mt-1 text-sm text-gray-400">{label}</div>
+          <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-400">
+            <span>{label}</span>
+            {help ? <HelpTooltip text={help} label={`About ${label}`} /> : null}
+          </div>
         </div>
         <div className="rounded-xl bg-gray-900/60 p-3">
           <Icon className="h-6 w-6" />
@@ -90,10 +110,100 @@ function StatCard({ icon: Icon, label, value, tone = 'emerald' }) {
   );
 }
 
-function DetailRow({ label, value, mono = false }) {
+function HelpTooltip({ text, label = 'More information' }) {
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        aria-label={`${label}: ${text}`}
+        className="rounded-full text-gray-500 transition hover:text-emerald-300 focus:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+      >
+        <QuestionMarkCircleIcon className="h-4 w-4" />
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 hidden w-72 -translate-x-1/2 rounded-xl border border-gray-600 bg-gray-950 px-3 py-2 text-left text-xs font-normal leading-5 text-gray-200 shadow-2xl group-hover:block group-focus-within:block"
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
+function SectionHeading({ children, help }) {
+  return (
+    <div className="flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-white">{children}</h3>
+      {help ? <HelpTooltip text={help} label={`About ${children}`} /> : null}
+    </div>
+  );
+}
+
+function LoadingProgress({ label, detail, progress = 35 }) {
+  const safeProgress = Math.max(8, Math.min(100, Number(progress) || 0));
+  return (
+    <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-6">
+      <div className="flex items-center justify-between gap-4 text-sm">
+        <span className="font-medium text-gray-100">{label}</span>
+        <span className="text-xs text-gray-400">{Math.round(safeProgress)}%</span>
+      </div>
+      <div
+        className="mt-3 h-2 overflow-hidden rounded-full bg-gray-700"
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(safeProgress)}
+      >
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-300 transition-all duration-500"
+          style={{ width: `${safeProgress}%` }}
+        />
+      </div>
+      {detail ? <p className="mt-3 text-xs leading-5 text-gray-400">{detail}</p> : null}
+    </div>
+  );
+}
+
+function AccessActionButton({
+  action,
+  label,
+  help,
+  onAction,
+  loadingAction,
+  tone = 'gray',
+}) {
+  const toneClasses = {
+    gray: 'bg-gray-700 hover:bg-gray-600',
+    blue: 'bg-blue-700 hover:bg-blue-600',
+    emerald: 'bg-emerald-700 hover:bg-emerald-600',
+    red: 'bg-red-800 hover:bg-red-700',
+  };
+  return (
+    <div className="rounded-xl border border-gray-700/80 bg-gray-900/35 p-3">
+      <div className="mb-3 flex min-h-10 items-start justify-between gap-2">
+        <span className="text-sm font-medium leading-5 text-gray-100">{label}</span>
+        <HelpTooltip text={help} label={`About ${label}`} />
+      </div>
+      <button
+        type="button"
+        onClick={() => onAction(action)}
+        disabled={!!loadingAction}
+        className={`w-full rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${toneClasses[tone] || toneClasses.gray}`}
+      >
+        {loadingAction === action ? 'Working…' : label}
+      </button>
+    </div>
+  );
+}
+
+function DetailRow({ label, value, mono = false, help = '' }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-gray-700/70 py-3 last:border-b-0">
-      <div className="text-sm text-gray-400">{label}</div>
+      <div className="flex items-center gap-1.5 text-sm text-gray-400">
+        <span>{label}</span>
+        {help ? <HelpTooltip text={help} label={`About ${label}`} /> : null}
+      </div>
       <div className={`text-right text-sm text-white ${mono ? 'font-mono break-all' : ''}`}>
         {value || 'Not set'}
       </div>
@@ -158,7 +268,7 @@ function ARChallengeRolloutPanel() {
     const labels = {
       squat: 'AR squats',
       pushup: 'AR push-ups',
-      smartReturn: 'Smart Return',
+      smartReturn: 'Smart Return check-in',
     };
     const verb = enabled ? 'publish' : 'hide';
     if (!window.confirm(`Are you sure you want to ${verb} ${labels[feature]} for all users?`)) return;
@@ -187,16 +297,21 @@ function ARChallengeRolloutPanel() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold text-white">Release & Tester Rollout</h2>
+            <HelpTooltip
+              label="About release and tester rollout"
+              text="Public switches expose a capability to all eligible members. Per-user tester controls farther down expose an unpublished capability only to the selected account."
+            />
             <StatusChip tone={isEnabled ? 'amber' : 'emerald'}>
               {loading ? 'Checking policy' : isEnabled ? 'Controlled beta enabled' : 'Globally disabled'}
             </StatusChip>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-gray-300">
-            The AR master switch and each public launch switch are evaluated whenever the app opens or returns to the foreground.
-            Tester enrollments below can expose unreleased capabilities without creating a separate EAS binary.
+            The AR master switch gates squat and push-up camera experiences. Public switches and tester enrollments are
+            evaluated whenever the app opens or returns to the foreground, without requiring a separate EAS binary.
+            Smart Return check-in access is independent of both the AR master switch and the standard Take a Break action.
           </p>
           <p className="mt-2 text-xs text-gray-400">
-            Recommended launch state: AR enabled, squats public, push-ups hidden, Smart Return hidden.
+            Recommended launch state: AR enabled, squats public, push-ups hidden, Smart Return check-in hidden.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <StatusChip tone={publicFeatures.squat ? 'emerald' : 'gray'}>
@@ -206,7 +321,7 @@ function ARChallengeRolloutPanel() {
               Push-ups {publicFeatures.pushup ? 'public' : 'tester-only'}
             </StatusChip>
             <StatusChip tone={publicFeatures.smartReturn ? 'emerald' : 'gray'}>
-              Smart Return {publicFeatures.smartReturn ? 'public' : 'tester-only'}
+              Smart Return check-in {publicFeatures.smartReturn ? 'public' : 'tester-only'}
             </StatusChip>
           </div>
           {rollout?.updatedAt ? <p className="mt-2 text-xs text-gray-500">Last changed {formatDateTime(rollout.updatedAt)}</p> : null}
@@ -232,25 +347,30 @@ function ARChallengeRolloutPanel() {
             {updating ? 'Updating...' : isEnabled ? 'Disable AR globally' : 'Enable controlled beta'}
           </button>
         </div>
-        <div className="mt-4 flex w-full flex-wrap gap-2 border-t border-amber-500/20 pt-4">
+        <div className="mt-4 grid w-full gap-3 border-t border-amber-500/20 pt-4 md:grid-cols-3">
           {[
-            ['squat', 'AR squats'],
-            ['pushup', 'AR push-ups'],
-            ['smartReturn', 'Smart Return'],
-          ].map(([feature, label]) => {
+            ['squat', 'AR squats', 'Controls whether every member can access the camera-tracked squat challenge. Tester access remains available while this is unpublished.'],
+            ['pushup', 'AR push-ups', 'Controls whether every member can access camera-tracked push-ups. Keep unpublished while push-up testing is still in progress.'],
+            ['smartReturn', 'Smart Return check-in', 'Controls the enhanced return check-in and recommendations after a break. It does not hide Take a Break, which remains available independently.'],
+          ].map(([feature, label, help]) => {
             const published = publicFeatures[feature] === true;
             return (
-              <button
-                key={feature}
-                type="button"
-                onClick={() => updatePublicFeature(feature, !published)}
-                disabled={loading || updating}
-                className={`rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                  published ? 'bg-red-700 hover:bg-red-600' : 'bg-blue-700 hover:bg-blue-600'
-                }`}
-              >
-                {published ? `Hide ${label}` : `Publish ${label}`}
-              </button>
+              <div key={feature} className="rounded-xl border border-gray-700/80 bg-gray-900/30 p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-gray-100">{label}</span>
+                  <HelpTooltip text={help} label={`About ${label}`} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updatePublicFeature(feature, !published)}
+                  disabled={loading || updating}
+                  className={`w-full rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    published ? 'bg-red-700 hover:bg-red-600' : 'bg-blue-700 hover:bg-blue-600'
+                  }`}
+                >
+                  {published ? `Hide ${label}` : `Publish ${label}`}
+                </button>
+              </div>
             );
           })}
         </div>
@@ -259,9 +379,10 @@ function ARChallengeRolloutPanel() {
   );
 }
 
-function PlanPanel({ plan, expanded, onToggle }) {
+function PlanPanel({ plan, expanded, onToggle, loading = false, error = '' }) {
   const stats = plan?.stats || {};
   const days = Array.isArray(plan?.days) ? plan.days : [];
+  const detailsLoaded = plan?.detailsLoaded === true;
 
   return (
     <div className="rounded-2xl border border-gray-700 bg-gray-800/80">
@@ -277,9 +398,15 @@ function PlanPanel({ plan, expanded, onToggle }) {
             {plan?.source ? <StatusChip tone="blue">{String(plan.source)}</StatusChip> : null}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <StatusChip>{stats.dayCount || 0} days</StatusChip>
-            <StatusChip>{stats.workoutCount || 0} workouts</StatusChip>
-            <StatusChip>{stats.exerciseCount || 0} exercises</StatusChip>
+            {detailsLoaded ? (
+              <>
+                <StatusChip>{stats.dayCount || 0} days</StatusChip>
+                <StatusChip>{stats.workoutCount || 0} workouts</StatusChip>
+                <StatusChip>{stats.exerciseCount || 0} exercises</StatusChip>
+              </>
+            ) : (
+              <StatusChip tone="gray">Details load on demand</StatusChip>
+            )}
             {plan?.startDate ? <StatusChip tone="amber">Starts {formatCompactDate(plan.startDate)}</StatusChip> : null}
           </div>
           <div className="mt-3 text-sm text-gray-400">
@@ -293,7 +420,21 @@ function PlanPanel({ plan, expanded, onToggle }) {
 
       {expanded ? (
         <div className="border-t border-gray-700 px-5 py-4">
-          {days.length === 0 ? (
+          {loading ? (
+            <LoadingProgress
+              label={`Loading ${formatPlanTitle(plan)}`}
+              detail="Gathering saved days, workouts, and exercises for this plan."
+              progress={62}
+            />
+          ) : error ? (
+            <div className="rounded-xl border border-red-500/40 bg-red-950/30 p-4 text-sm text-red-200">
+              {error}
+            </div>
+          ) : !detailsLoaded ? (
+            <div className="rounded-xl border border-dashed border-gray-700 bg-gray-900/40 p-4 text-sm text-gray-400">
+              Open this plan again to load its workout history.
+            </div>
+          ) : days.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-700 bg-gray-900/40 p-4 text-sm text-gray-400">
               This plan does not have saved day data yet.
             </div>
@@ -395,20 +536,25 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [hiddenDuplicateOrphans, setHiddenDuplicateOrphans] = useState(0);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [usersLoadingProgress, setUsersLoadingProgress] = useState(20);
   const [usersError, setUsersError] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [detailCache, setDetailCache] = useState({});
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailLoadingProgress, setDetailLoadingProgress] = useState(15);
   const [detailError, setDetailError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedPlans, setExpandedPlans] = useState({});
+  const [planLoadingId, setPlanLoadingId] = useState('');
+  const [planLoadErrors, setPlanLoadErrors] = useState({});
   const [notificationTitle, setNotificationTitle] = useState('SageSet');
   const [notificationBody, setNotificationBody] = useState('');
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [sendingNotification, setSendingNotification] = useState(false);
   const [accessActionLoading, setAccessActionLoading] = useState('');
+  const detailRequestRef = useRef(0);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
   const selectedSummary = useMemo(
@@ -450,6 +596,8 @@ export default function AdminUsersPage() {
 
   const selectUser = async (uid, { force = false } = {}) => {
     if (!uid) return;
+    const requestId = detailRequestRef.current + 1;
+    detailRequestRef.current = requestId;
 
     setSelectedUserId(uid);
     setDetailError('');
@@ -458,33 +606,44 @@ export default function AdminUsersPage() {
 
     if (!force && detailCache[uid]) {
       setSelectedDetail(detailCache[uid]);
-      setExpandedPlans(buildDefaultExpandedPlans(detailCache[uid]));
+      setExpandedPlans({});
       return;
     }
 
     setSelectedDetail(null);
     setExpandedPlans({});
+    setPlanLoadingId('');
+    setPlanLoadErrors({});
     setDetailLoading(true);
+    setDetailLoadingProgress(20);
 
     try {
       const detail = await getUserAdminDetail(uid);
+      if (detailRequestRef.current !== requestId) return;
+      setDetailLoadingProgress(85);
       setDetailCache((prev) => ({ ...prev, [uid]: detail }));
       setSelectedDetail(detail);
-      setExpandedPlans(buildDefaultExpandedPlans(detail));
+      setExpandedPlans({});
     } catch (error) {
+      if (detailRequestRef.current !== requestId) return;
       console.warn('Failed to load user detail:', error);
       setDetailError(error?.message || 'Failed to load user detail.');
     } finally {
-      setDetailLoading(false);
+      if (detailRequestRef.current === requestId) {
+        setDetailLoadingProgress(100);
+        setDetailLoading(false);
+      }
     }
   };
 
   const loadUsers = async ({ preserveSelection = true } = {}) => {
     setUsersLoading(true);
+    setUsersLoadingProgress(18);
     setUsersError('');
 
     try {
       const result = await listUsersForAdmin(250);
+      setUsersLoadingProgress(82);
       const nextUsers = Array.isArray(result?.users) ? result.users : [];
       setUsers(nextUsers);
       setHiddenDuplicateOrphans(Number(result?.hiddenDuplicateOrphans || 0));
@@ -495,7 +654,7 @@ export default function AdminUsersPage() {
           : nextUsers[0]?.uid || '';
 
       if (preferredUserId) {
-        await selectUser(preferredUserId);
+        void selectUser(preferredUserId);
       } else {
         setSelectedUserId('');
         setSelectedDetail(null);
@@ -504,6 +663,7 @@ export default function AdminUsersPage() {
       console.warn('Failed to load admin users:', error);
       setUsersError(error?.message || 'Failed to load users.');
     } finally {
+      setUsersLoadingProgress(100);
       setUsersLoading(false);
     }
   };
@@ -512,11 +672,33 @@ export default function AdminUsersPage() {
     loadUsers({ preserveSelection: false });
   }, []);
 
-  const togglePlan = (planId) => {
-    setExpandedPlans((prev) => ({
-      ...prev,
-      [planId]: !prev[planId],
-    }));
+  const togglePlan = async (planId) => {
+    const plan = selectedDetail?.plans?.find((item) => item.id === planId);
+    const nextExpanded = !expandedPlans[planId];
+    setExpandedPlans((prev) => ({ ...prev, [planId]: nextExpanded }));
+    if (!nextExpanded || !plan || plan.detailsLoaded === true || planLoadingId) return;
+
+    const uid = selectedUserId;
+    const selectionRequestId = detailRequestRef.current;
+    setPlanLoadingId(planId);
+    setPlanLoadErrors((prev) => ({ ...prev, [planId]: '' }));
+    try {
+      const result = await getUserAdminPlanDetail(uid, planId);
+      if (detailRequestRef.current !== selectionRequestId || !result?.plan) return;
+      setSelectedDetail((current) => mergePlanDetail(current, result.plan));
+      setDetailCache((prev) => ({
+        ...prev,
+        [uid]: mergePlanDetail(prev[uid], result.plan),
+      }));
+    } catch (error) {
+      console.warn('Failed to load workout plan detail:', error);
+      setPlanLoadErrors((prev) => ({
+        ...prev,
+        [planId]: error?.message || 'Failed to load this workout plan.',
+      }));
+    } finally {
+      if (detailRequestRef.current === selectionRequestId) setPlanLoadingId('');
+    }
   };
 
   const handleSendNotification = async () => {
@@ -608,7 +790,17 @@ export default function AdminUsersPage() {
         action === 'toggle_demo_account' && typeof result?.access?.demoAccess === 'boolean'
           ? ` Demo account is now ${result.access.demoAccess ? 'enabled' : 'disabled'}.`
           : '';
-      setActionMessage(`Access action completed: ${action}.${demoSuffix}`);
+      const actionLabels = {
+        extend_trial_7: 'Trial extended by seven days.',
+        grant_premium_7: 'Seven days of manual premium access granted.',
+        revoke_premium: 'Manual premium access revoked.',
+        toggle_demo_account: 'Demo-account access updated.',
+        toggle_arkit_beta: 'AR squat test access updated.',
+        toggle_pushup_beta: 'Push-up test access updated.',
+        toggle_smart_return_beta: 'Smart Return check-in test access updated. Take a Break is unchanged.',
+        recalculate: 'Entitlements recalculated.',
+      };
+      setActionMessage(`${actionLabels[action] || 'Access updated.'}${demoSuffix}`);
     } catch (error) {
       console.warn('Failed to update user access:', error);
       setActionError(error?.message || 'Failed to update user access.');
@@ -623,10 +815,10 @@ export default function AdminUsersPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard icon={UsersIcon} label="Total Users" value={stats.total} tone="emerald" />
-          <StatCard icon={ClipboardDocumentListIcon} label="Users With Plans" value={stats.withPlans} tone="blue" />
-          <StatCard icon={DevicePhoneMobileIcon} label="Push Ready" value={stats.withPush} tone="amber" />
-          <StatCard icon={UserCircleIcon} label="Verified Emails" value={stats.verified} tone="rose" />
+          <StatCard icon={UsersIcon} label="Total Users" value={stats.total} tone="emerald" help="Authentication accounts and non-duplicate profile-only records visible to this admin." />
+          <StatCard icon={ClipboardDocumentListIcon} label="Users With Plans" value={stats.withPlans} tone="blue" help="Users with at least one saved plan. Plan counts are gathered in one batched query." />
+          <StatCard icon={DevicePhoneMobileIcon} label="Push Ready" value={stats.withPush} tone="amber" help="Users whose profile contains at least one valid Expo push token." />
+          <StatCard icon={UserCircleIcon} label="Verified Emails" value={stats.verified} tone="rose" help="Firebase Authentication accounts with a verified email address." />
         </div>
 
         <ARChallengeRolloutPanel />
@@ -671,7 +863,13 @@ export default function AdminUsersPage() {
 
             <div className="max-h-[70vh] overflow-y-auto">
               {usersLoading ? (
-                <div className="p-6 text-sm text-gray-400">Loading users...</div>
+                <div className="p-4">
+                  <LoadingProgress
+                    label="Loading users"
+                    detail="Gathering authentication profiles and batched plan summaries. The list will appear before any workout history is loaded."
+                    progress={usersLoadingProgress}
+                  />
+                </div>
               ) : usersError ? (
                 <div className="p-6 text-sm text-red-300">{usersError}</div>
               ) : filteredUsers.length === 0 ? (
@@ -726,9 +924,11 @@ export default function AdminUsersPage() {
 
           <section className="space-y-6">
             {detailLoading ? (
-              <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-8 text-sm text-gray-300">
-                Loading details for {formatUserLabel(selectedSummary)}...
-              </div>
+              <LoadingProgress
+                label={`Loading ${formatUserLabel(selectedSummary)}`}
+                detail="Loading the account profile, settings, access status, and lightweight plan list. Full workout history loads only when a plan is opened."
+                progress={detailLoadingProgress}
+              />
             ) : detailError ? (
               <div className="rounded-2xl border border-red-500/40 bg-red-950/30 p-6 text-sm text-red-200">
                 {detailError}
@@ -786,15 +986,15 @@ export default function AdminUsersPage() {
                             <StatusChip tone="amber">Push-up tester</StatusChip>
                           ) : null}
                           {selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? (
-                            <StatusChip tone="blue">Smart Return tester</StatusChip>
+                            <StatusChip tone="blue">Smart Return check-in tester</StatusChip>
                           ) : null}
                         </div>
 
                         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                          <StatCard icon={ClipboardDocumentListIcon} label="Plans" value={selectedDetail.stats?.planCount || 0} tone="blue" />
-                          <StatCard icon={ClipboardDocumentListIcon} label="Workout Days" value={selectedDetail.stats?.dayCount || 0} tone="emerald" />
-                          <StatCard icon={ClipboardDocumentListIcon} label="Workouts" value={selectedDetail.stats?.workoutCount || 0} tone="amber" />
-                          <StatCard icon={ClipboardDocumentListIcon} label="Exercises" value={selectedDetail.stats?.exerciseCount || 0} tone="rose" />
+                          <StatCard icon={ClipboardDocumentListIcon} label="Plans" value={selectedDetail.stats?.planCount || 0} tone="blue" help="Saved plan documents for this user." />
+                          <StatCard icon={ClipboardDocumentListIcon} label="Active Plans" value={selectedDetail.stats?.activePlanCount || 0} tone="emerald" help="Plans currently marked active." />
+                          <StatCard icon={ClipboardDocumentListIcon} label="Loaded Workout Days" value={selectedDetail.stats?.loadedPlanCount ? selectedDetail.stats?.dayCount || 0 : '—'} tone="amber" help="Workout days from plans opened during this session. Open a plan below to load its history." />
+                          <StatCard icon={ClipboardDocumentListIcon} label="Loaded Exercises" value={selectedDetail.stats?.loadedPlanCount ? selectedDetail.stats?.exerciseCount || 0 : '—'} tone="rose" help="Exercises from plans opened during this session. History is loaded on demand for faster profile access." />
                         </div>
                       </div>
 
@@ -870,64 +1070,59 @@ export default function AdminUsersPage() {
                     </div>
 
                     <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-6">
-                      <h3 className="text-lg font-semibold text-white">Access Controls</h3>
-                      <div className="mt-4 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
-                        <DetailRow label="Trial" value={selectedDetail.rawUserData?.trial?.status || 'Not set'} />
-                        <DetailRow label="Subscription" value={selectedDetail.rawUserData?.subscription?.status || 'Not set'} />
-                        <DetailRow label="Source" value={selectedDetail.rawUserData?.subscription?.source || 'Not set'} />
-                        <DetailRow label="Demo Account" value={selectedDetail.rawUserData?.accountFlags?.demo ? 'Yes' : 'No'} />
-                        <DetailRow
-                          label="AR Challenge Beta"
-                          value={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Enrolled' : 'Not enrolled'}
-                        />
-                        <DetailRow
-                          label="Push-up Beta"
-                          value={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Enrolled' : 'Not enrolled'}
-                        />
-                        <DetailRow
-                          label="Smart Return Beta"
-                          value={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Enrolled' : 'Not enrolled'}
-                        />
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {[
-                          ['extend_trial_7', 'Extend trial 7 days'],
-                          ['grant_premium_7', 'Grant premium 7 days'],
-                          ['revoke_premium', 'Revoke premium'],
-                          [
-                            'toggle_demo_account',
-                            selectedDetail.rawUserData?.accountFlags?.demo ? 'Disable demo account' : 'Enable demo account',
-                          ],
-                          [
-                            'toggle_arkit_beta',
-                            selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true
-                              ? 'Disable AR squat test'
-                              : 'Enable AR squat test',
-                          ],
-                          [
-                            'toggle_pushup_beta',
-                            selectedDetail.rawUserData?.betaFlags?.arkitPushups === true
-                              ? 'Disable push-up test'
-                              : 'Enable push-up test',
-                          ],
-                          [
-                            'toggle_smart_return_beta',
-                            selectedDetail.rawUserData?.betaFlags?.smartReturn === true
-                              ? 'Disable Smart Return test'
-                              : 'Enable Smart Return test',
-                          ],
-                          ['recalculate', 'Recalculate'],
-                        ].map(([action, label]) => (
-                          <button
-                            key={action}
-                            type="button"
-                            onClick={() => handleAccessAction(action)}
-                            disabled={!!accessActionLoading}
-                            className="rounded-lg bg-gray-700 px-3 py-2 text-sm font-medium text-gray-100 transition hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {accessActionLoading === action ? 'Working...' : label}
-                          </button>
-                        ))}
+                      <SectionHeading help="Membership changes, test enrollments, and entitlement maintenance are grouped separately to reduce accidental changes.">
+                        Access Controls
+                      </SectionHeading>
+                      <p className="mt-2 text-sm text-gray-400">
+                        Hover or focus a <QuestionMarkCircleIcon className="inline h-4 w-4 align-text-bottom" /> icon for an explanation.
+                      </p>
+
+                      <div className="mt-5 grid gap-4 xl:grid-cols-3">
+                        <section className="rounded-xl border border-gray-700 bg-gray-900/25 p-4">
+                          <SectionHeading help="Temporary trial and subscription overrides. These affect premium entitlement calculations.">
+                            Membership
+                          </SectionHeading>
+                          <div className="mt-3">
+                            <DetailRow label="Trial" value={selectedDetail.rawUserData?.trial?.status || 'Not set'} help="The current trial state stored on the user profile." />
+                            <DetailRow label="Subscription" value={selectedDetail.rawUserData?.subscription?.status || 'Not set'} help="The current calculated premium subscription state." />
+                            <DetailRow label="Source" value={selectedDetail.rawUserData?.subscription?.source || 'Not set'} help="Where the current subscription entitlement originated, such as Apple, Stripe, demo, or a manual admin grant." />
+                          </div>
+                          <div className="mt-4 grid gap-3">
+                            <AccessActionButton action="extend_trial_7" label="Extend trial 7 days" help="Moves the trial end date forward seven days and marks the trial active." onAction={handleAccessAction} loadingAction={accessActionLoading} tone="blue" />
+                            <AccessActionButton action="grant_premium_7" label="Grant premium 7 days" help="Creates a seven-day manual premium entitlement without changing an App Store or Stripe subscription." onAction={handleAccessAction} loadingAction={accessActionLoading} tone="emerald" />
+                            <AccessActionButton action="revoke_premium" label="Revoke manual premium" help="Expires the calculated premium and trial status. This does not cancel an external Apple or Stripe subscription." onAction={handleAccessAction} loadingAction={accessActionLoading} tone="red" />
+                          </div>
+                        </section>
+
+                        <section className="rounded-xl border border-gray-700 bg-gray-900/25 p-4">
+                          <SectionHeading help="Per-user access to demo behavior and capabilities that are not yet public. Changes are reflected when the app opens, signs in, or returns to the foreground.">
+                            Testing Access
+                          </SectionHeading>
+                          <div className="mt-3">
+                            <DetailRow label="Demo Account" value={selectedDetail.rawUserData?.accountFlags?.demo ? 'Enabled' : 'Disabled'} help="Grants demo-account entitlement behavior. It is separate from AR and Smart Return testing." />
+                            <DetailRow label="AR Squat Test" value={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Enrolled' : 'Not enrolled'} help="Allows this user to test AR squats while the AR master rollout is enabled." />
+                            <DetailRow label="Push-up Test" value={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Enrolled' : 'Not enrolled'} help="Allows this user to test AR push-ups while the AR master rollout is enabled." />
+                            <DetailRow label="Smart Return Check-in Test" value={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Enrolled' : 'Not enrolled'} help="Enables the enhanced return check-in and recommendations after a break. Take a Break itself remains available even when this is disabled." />
+                          </div>
+                          <div className="mt-4 grid gap-3">
+                            <AccessActionButton action="toggle_demo_account" label={selectedDetail.rawUserData?.accountFlags?.demo ? 'Disable demo account' : 'Enable demo account'} help="Toggles this user's demo-account entitlement." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_arkit_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Disable AR squat test' : 'Enable AR squat test'} help="Toggles per-user AR squat testing. The global AR master switch must also be enabled." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_pushup_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Disable push-up test' : 'Enable push-up test'} help="Toggles per-user AR push-up testing. The global AR master switch must also be enabled." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_smart_return_beta" label={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Disable Smart Return check-in test' : 'Enable Smart Return check-in test'} help="Toggles only the Smart Return check-in and recommendations. It does not remove the Take a Break action." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                          </div>
+                        </section>
+
+                        <section className="rounded-xl border border-gray-700 bg-gray-900/25 p-4">
+                          <SectionHeading help="Administrative repair and recalculation tools. These do not directly toggle a single feature.">
+                            Maintenance
+                          </SectionHeading>
+                          <p className="mt-3 text-sm leading-6 text-gray-400">
+                            Recalculate refreshes derived trial and subscription entitlements from the user’s current account data.
+                          </p>
+                          <div className="mt-4">
+                            <AccessActionButton action="recalculate" label="Recalculate entitlements" help="Re-runs entitlement calculation without changing tester enrollment flags." onAction={handleAccessAction} loadingAction={accessActionLoading} tone="blue" />
+                          </div>
+                        </section>
                       </div>
                     </div>
 
@@ -1002,7 +1197,7 @@ export default function AdminUsersPage() {
                       <div>
                         <h3 className="text-xl font-semibold text-white">Workout Plans</h3>
                         <p className="mt-1 text-sm text-gray-400">
-                          Review saved plans, daily structure, workouts, and exercises.
+                          Plan headers load with the profile. Open a plan to load its days, workouts, and exercises.
                         </p>
                       </div>
 
@@ -1013,6 +1208,8 @@ export default function AdminUsersPage() {
                             plan={plan}
                             expanded={!!expandedPlans[plan.id]}
                             onToggle={() => togglePlan(plan.id)}
+                            loading={planLoadingId === plan.id}
+                            error={planLoadErrors[plan.id] || ''}
                           />
                         ))
                       ) : (
