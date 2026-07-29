@@ -109,3 +109,25 @@ export async function updateARChallengeRolloutForAdmin({ enabled, publicFeatures
     ...(publicFeatures ? { publicFeatures } : {}),
   });
 }
+
+export async function getSprintCoachRolloutForAdmin() {
+  return await callAdminFunction('getSprintCoachAccessForAdmin', {});
+}
+
+export async function updateSprintCoachRolloutForAdmin(payload) {
+  return await callAdminFunction('updateSprintCoachRolloutForAdmin', payload);
+}
+
+export async function updateSprintCoachUserAccessForAdmin({
+  uid,
+  accessLevel,
+  notes = '',
+  notifyUser = false,
+}) {
+  return await callAdminFunction('updateSprintCoachUserAccessForAdmin', {
+    uid,
+    accessLevel,
+    notes,
+    notifyUser,
+  });
+}

@@ -20,9 +20,12 @@ import {
   getUserAdminPlanDetail,
   loadARSessionReviewBlob,
   getARChallengeRolloutForAdmin,
+  getSprintCoachRolloutForAdmin,
   listUsersForAdmin,
   sendUserExpoNotification,
   updateARChallengeRolloutForAdmin,
+  updateSprintCoachRolloutForAdmin,
+  updateSprintCoachUserAccessForAdmin,
   updateUserAccessForAdmin,
 } from '../services/adminUsers.js';
 
@@ -392,6 +395,118 @@ function ARChallengeRolloutPanel() {
   );
 }
 
+function SprintCoachRolloutPanel() {
+  const [rollout, setRollout] = useState(null);
+  const [draft, setDraft] = useState({
+    minimumAppVersion: '1.2.12',
+    maintenanceMessage: '',
+    allowTesterAccess: true,
+  });
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await getSprintCoachRolloutForAdmin();
+      const value = result?.rollout || {};
+      setRollout(value);
+      setDraft({
+        minimumAppVersion: value.minimumAppVersion || '1.2.12',
+        maintenanceMessage: value.maintenanceMessage || '',
+        allowTesterAccess: value.allowTesterAccess !== false,
+      });
+    } catch (loadError) {
+      setError(loadError?.message || 'Unable to load Sprint Coach rollout.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const save = async (patch) => {
+    setUpdating(true);
+    setMessage('');
+    setError('');
+    try {
+      const result = await updateSprintCoachRolloutForAdmin({
+        minimumAppVersion: draft.minimumAppVersion,
+        maintenanceMessage: draft.maintenanceMessage,
+        allowTesterAccess: draft.allowTesterAccess,
+        ...patch,
+      });
+      setRollout(result?.rollout || null);
+      setMessage('Sprint Coach rollout policy updated.');
+    } catch (saveError) {
+      setError(saveError?.message || 'Unable to update Sprint Coach rollout.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const toggleGlobal = () => {
+    const next = rollout?.globallyEnabled !== true;
+    const detail = next
+      ? 'This enables Sprint Coach only for users explicitly enrolled as testers. It does not make the feature public.'
+      : 'This immediately hides Sprint Coach for all users. Active sessions can still be completed.';
+    if (window.confirm(`${detail}\n\nContinue?`)) void save({ globallyEnabled: next });
+  };
+
+  return (
+    <section className="mt-6 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">Sprint Coach Early Access</h2>
+            <HelpTooltip text="The master switch and per-user tester enrollment must both be enabled. Public and beta access remain disabled in this initial release." />
+            <StatusChip tone={rollout?.globallyEnabled ? 'amber' : 'emerald'}>
+              {loading ? 'Checking policy' : rollout?.globallyEnabled ? 'Tester rollout active' : 'Globally hidden'}
+            </StatusChip>
+          </div>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-300">
+            Sprint Coach is fail-closed. Enrolling a user below has no effect until this tester rollout is active.
+            Disabling the master switch hides the dashboard entry at the next sign-in, foreground refresh, notification,
+            or five-minute poll.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <StatusChip tone={rollout?.allowTesterAccess ? 'emerald' : 'gray'}>Tester access {rollout?.allowTesterAccess ? 'allowed' : 'blocked'}</StatusChip>
+            <StatusChip tone="gray">Beta access {rollout?.allowBetaAccess ? 'allowed' : 'blocked'}</StatusChip>
+            <StatusChip tone="gray">Public access {rollout?.allowPublicAccess ? 'allowed' : 'blocked'}</StatusChip>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={load} disabled={loading || updating} className="rounded-lg border border-gray-600 px-3 py-2 text-sm text-gray-100 disabled:opacity-60">Refresh</button>
+          <button
+            type="button"
+            onClick={toggleGlobal}
+            disabled={loading || updating}
+            className={`rounded-lg px-3 py-2 text-sm font-medium text-white disabled:opacity-60 ${rollout?.globallyEnabled ? 'bg-red-700' : 'bg-emerald-700'}`}
+          >
+            {updating ? 'Updating…' : rollout?.globallyEnabled ? 'Disable globally' : 'Enable tester rollout'}
+          </button>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 border-t border-cyan-500/20 pt-4 md:grid-cols-[220px_1fr_auto]">
+        <label className="text-sm text-gray-300">
+          Minimum app version
+          <input value={draft.minimumAppVersion} onChange={(event) => setDraft((current) => ({ ...current, minimumAppVersion: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-white" />
+        </label>
+        <label className="text-sm text-gray-300">
+          Maintenance message (optional)
+          <input value={draft.maintenanceMessage} onChange={(event) => setDraft((current) => ({ ...current, maintenanceMessage: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-white" />
+        </label>
+        <button type="button" onClick={() => save({})} disabled={updating} className="self-end rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">Save policy</button>
+      </div>
+      {message ? <p className="mt-3 text-sm text-emerald-300">{message}</p> : null}
+      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+    </section>
+  );
+}
+
 function PlanPanel({ plan, expanded, onToggle, loading = false, error = '' }) {
   const stats = plan?.stats || {};
   const days = Array.isArray(plan?.days) ? plan.days : [];
@@ -558,6 +673,7 @@ export default function AdminUsersPage() {
   const [detailLoadingProgress, setDetailLoadingProgress] = useState(15);
   const [detailError, setDetailError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [userFilter, setUserFilter] = useState('all');
   const [expandedPlans, setExpandedPlans] = useState({});
   const [planLoadingId, setPlanLoadingId] = useState('');
   const [planLoadErrors, setPlanLoadErrors] = useState({});
@@ -568,6 +684,8 @@ export default function AdminUsersPage() {
   const [sendingNotification, setSendingNotification] = useState(false);
   const [accessActionLoading, setAccessActionLoading] = useState('');
   const [notifyARAccessChanges, setNotifyARAccessChanges] = useState(true);
+  const [sprintCoachNotes, setSprintCoachNotes] = useState('');
+  const [sprintCoachAccessLoading, setSprintCoachAccessLoading] = useState(false);
   const [reviewOpeningId, setReviewOpeningId] = useState('');
   const detailRequestRef = useRef(0);
   const deferredSearchTerm = useDeferredValue(searchTerm);
@@ -579,9 +697,11 @@ export default function AdminUsersPage() {
 
   const filteredUsers = useMemo(() => {
     const term = deferredSearchTerm.trim().toLowerCase();
-    if (!term) return users;
-
-    return users.filter((item) =>
+    return users.filter((item) => {
+      if (userFilter === 'sprint_enabled' && item.sprintCoachEnabled !== true) return false;
+      if (userFilter === 'sprint_disabled' && item.sprintCoachEnabled === true) return false;
+      if (!term) return true;
+      return (
       [
         item.displayName,
         item.email,
@@ -591,8 +711,9 @@ export default function AdminUsersPage() {
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(term))
-    );
-  }, [deferredSearchTerm, users]);
+      );
+    });
+  }, [deferredSearchTerm, userFilter, users]);
 
   const stats = useMemo(
     () => ({
@@ -868,6 +989,50 @@ export default function AdminUsersPage() {
     }
   };
 
+  useEffect(() => {
+    setSprintCoachNotes(
+      selectedDetail?.rawUserData?.featureAccess?.sprintCoach?.notes || ''
+    );
+  }, [selectedDetail?.profile?.uid, selectedDetail?.rawUserData?.featureAccess?.sprintCoach?.notes]);
+
+  const handleSprintCoachAccess = async (accessLevel) => {
+    if (!selectedUserId) return;
+    const enabled = accessLevel !== 'disabled';
+    if (!window.confirm(
+      enabled
+        ? 'Grant this user Sprint Coach tester access? The global tester rollout must also be active.'
+        : 'Remove Sprint Coach access for this user? An active session can still be completed.'
+    )) return;
+    setSprintCoachAccessLoading(true);
+    setActionMessage('');
+    setActionError('');
+    try {
+      await updateSprintCoachUserAccessForAdmin({
+        uid: selectedUserId,
+        accessLevel,
+        notes: sprintCoachNotes,
+      });
+      setDetailCache((current) => {
+        const next = { ...current };
+        delete next[selectedUserId];
+        return next;
+      });
+      await Promise.all([
+        selectUser(selectedUserId, { force: true }),
+        loadUsers({ preserveSelection: true }),
+      ]);
+      setActionMessage(
+        enabled
+          ? 'Sprint Coach tester access granted. The mobile app will refresh within five minutes while active.'
+          : 'Sprint Coach access removed. The mobile app will refresh within five minutes while active.'
+      );
+    } catch (error) {
+      setActionError(error?.message || 'Unable to update Sprint Coach access.');
+    } finally {
+      setSprintCoachAccessLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       <AdminHeader userEmail={user?.email} onLogout={handleLogout} />
@@ -881,6 +1046,7 @@ export default function AdminUsersPage() {
         </div>
 
         <ARChallengeRolloutPanel />
+        <SprintCoachRolloutPanel />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
           <section className="overflow-hidden rounded-2xl border border-gray-700 bg-gray-800/90">
@@ -918,6 +1084,15 @@ export default function AdminUsersPage() {
                   className="w-full rounded-xl border border-gray-600 bg-gray-900/70 py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
+              <select
+                value={userFilter}
+                onChange={(event) => setUserFilter(event.target.value)}
+                className="mt-3 w-full rounded-xl border border-gray-600 bg-gray-900/70 px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="all">All users</option>
+                <option value="sprint_enabled">Sprint Coach testers</option>
+                <option value="sprint_disabled">Sprint Coach not enrolled</option>
+              </select>
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto">
@@ -1162,12 +1337,53 @@ export default function AdminUsersPage() {
                             <DetailRow label="AR Squat Test" value={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Enrolled' : 'Not enrolled'} help="Allows this user to test AR squats while the AR master rollout is enabled." />
                             <DetailRow label="Push-up Test" value={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Enrolled' : 'Not enrolled'} help="Allows this user to test AR push-ups while the AR master rollout is enabled." />
                             <DetailRow label="Smart Return Check-in Test" value={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Enrolled' : 'Not enrolled'} help="Enables the enhanced return check-in and recommendations after a break. Take a Break itself remains available even when this is disabled." />
+                            <DetailRow
+                              label="Sprint Coach"
+                              value={selectedDetail.rawUserData?.featureAccess?.sprintCoach?.enabled === true ? `Enrolled (${selectedDetail.rawUserData?.featureAccess?.sprintCoach?.accessLevel || 'tester'})` : 'Not enrolled'}
+                              help="Per-user Sprint Coach enrollment. Access also requires the global Sprint Coach tester rollout to be active."
+                            />
+                            <DetailRow
+                              label="Sprint Coach enabled"
+                              value={formatDateTime(selectedDetail.rawUserData?.featureAccess?.sprintCoach?.enabledAt)}
+                              help="The time this account was most recently granted Sprint Coach access."
+                            />
                           </div>
                           <div className="mt-4 grid gap-3">
                             <AccessActionButton action="toggle_demo_account" label={selectedDetail.rawUserData?.accountFlags?.demo ? 'Disable demo account' : 'Enable demo account'} help="Toggles this user's demo-account entitlement." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                             <AccessActionButton action="toggle_arkit_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Remove AR squat access' : 'Grant AR squat access'} help="Toggles per-user AR squat access during controlled rollout. The global AR master switch must also be enabled. If the notification option below is selected, SageSet sends an informational push when possible." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                             <AccessActionButton action="toggle_pushup_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Remove push-up access' : 'Grant push-up access'} help="Toggles per-user AR push-up access during controlled rollout. The global AR master switch must also be enabled. If the notification option below is selected, SageSet sends an informational push when possible." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                             <AccessActionButton action="toggle_smart_return_beta" label={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Remove Smart Return access' : 'Grant Smart Return access'} help="Toggles only the Smart Return check-in and recommendations. It does not remove the Take a Break action." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                          </div>
+                          <div className="mt-4 rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-3">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-cyan-100">
+                              Sprint Coach tester access
+                              <HelpTooltip text="Initial release supports disabled or tester access only. Public and beta levels remain controlled by backend rollout policy." />
+                            </div>
+                            <textarea
+                              value={sprintCoachNotes}
+                              onChange={(event) => setSprintCoachNotes(event.target.value)}
+                              placeholder="Internal tester notes"
+                              rows={3}
+                              className="mt-3 w-full rounded-lg border border-gray-600 bg-gray-950/60 px-3 py-2 text-sm text-white placeholder-gray-500"
+                            />
+                            <div className="mt-3 grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                disabled={sprintCoachAccessLoading}
+                                onClick={() => handleSprintCoachAccess('tester')}
+                                className="rounded-lg bg-cyan-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+                              >
+                                {sprintCoachAccessLoading ? 'Working…' : 'Grant tester access'}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={sprintCoachAccessLoading}
+                                onClick={() => handleSprintCoachAccess('disabled')}
+                                className="rounded-lg bg-red-800 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+                              >
+                                Remove access
+                              </button>
+                            </div>
                           </div>
                           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-700 bg-gray-950/35 p-3 text-sm text-gray-300">
                             <input

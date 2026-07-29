@@ -58,3 +58,6 @@ serviceAccountKey.json
 *.keystore
 *.key
 *.apk
+
+# Local Netlify folder
+.netlify
