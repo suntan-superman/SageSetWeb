@@ -4,6 +4,7 @@ import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 const navItems = [
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/dashboard', label: 'Feedback' },
+  { to: '/admin/sprint-feedback', label: 'Sprint Feedback' },
   { to: '/admin/exercises', label: 'Exercises' },
   { to: '/admin/usage', label: 'Usage' },
   { to: '/admin/releases', label: 'Releases' },

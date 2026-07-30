@@ -19,6 +19,7 @@ import AdminExercisesPage from './pages/AdminExercisesPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminUsagePage from './pages/AdminUsagePage.jsx';
 import AdminReleasesPage from './pages/AdminReleasesPage.jsx';
+import AdminSprintFeedbackPage from './pages/AdminSprintFeedbackPage.jsx';
 import ProductUpdatesPage from './pages/ProductUpdatesPage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { initMetaPixel, trackPageView } from './services/metaPixel.js';
@@ -191,6 +192,14 @@ export default function App() {
           element={
             <ProtectedAdminRoute>
               <AdminReleasesPage />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/admin/sprint-feedback"
+          element={
+            <ProtectedAdminRoute>
+              <AdminSprintFeedbackPage />
             </ProtectedAdminRoute>
           }
         />

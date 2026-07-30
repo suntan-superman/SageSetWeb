@@ -131,3 +131,11 @@ export async function updateSprintCoachUserAccessForAdmin({
     notifyUser,
   });
 }
+
+export async function listSprintCoachFeedbackForAdmin(limit = 100) {
+  return (
+    (await callAdminFunction('listSprintCoachFeedbackForAdmin', { limit })) || {
+      feedback: [],
+    }
+  );
+}
