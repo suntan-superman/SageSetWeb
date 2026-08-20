@@ -87,6 +87,14 @@ const pageContent = {
     event: 'DownloadClicked',
     bullets: ['Mobile-first workout flow', 'Food photo analysis', 'Daily reminders'],
   },
+  '/ar-squats': {
+    eyebrow: 'New on iPhone',
+    title: 'AI tracks every squat.',
+    body: 'SageSet AR Squats uses real-time body tracking to count completed repetitions while you move. Set up your phone, step into frame, and take on a hands-free challenge.',
+    icon: CameraIcon,
+    event: 'ViewContent',
+    bullets: ['Live rep counting', 'Real-time body tracking', 'Included with every membership'],
+  },
 };
 
 const fallbackContent = {
@@ -114,8 +122,8 @@ export default function MarketingLandingPage({ path = '/' }) {
   }, [content.title, path]);
 
   const handlePrimaryClick = (store = null) => {
-    if (path === '/download') {
-      trackCustomEvent('DownloadClicked', { source: path });
+    if (path === '/download' || path === '/ar-squats') {
+      trackCustomEvent('DownloadClicked', { source: path, feature: path === '/ar-squats' ? 'ar_squats' : undefined });
       void trackWorksideEvent(store === 'apple' ? 'download_click_ios' : 'download_click_android', { store: store === 'apple' ? 'apple' : 'google_play' });
     } else if (path === '/pricing') {
       trackEvent('Lead', { content_name: 'pricing_start_trial_click', content_category: 'pricing' });
@@ -158,6 +166,16 @@ export default function MarketingLandingPage({ path = '/' }) {
                     Download for Android
                   </a>
                 </>
+              ) : path === '/ar-squats' ? (
+                <a
+                  href={APP_STORE_URL}
+                  onClick={() => handlePrimaryClick('apple')}
+                  className="inline-flex items-center justify-center rounded-lg bg-sage-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-sage-600"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Download for iPhone
+                </a>
               ) : (
                 <a
                   href="/signup"
@@ -176,13 +194,27 @@ export default function MarketingLandingPage({ path = '/' }) {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-sage-300/20 bg-gray-900 shadow-2xl shadow-sage-900/30">
-            <img
-              src="/Sage Set Poster.png"
-              alt="SageSet mobile app preview"
-              className="h-full max-h-[520px] w-full object-cover"
-              loading="eager"
-            />
+          <div className="mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl border border-sage-300/20 bg-gray-900 shadow-2xl shadow-sage-900/30">
+            {path === '/ar-squats' ? (
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+                poster="/ar-squats-launch-poster.jpg"
+                className="aspect-[9/16] w-full object-cover"
+              >
+                <source src="/ar-squats-launch-reel.mp4" type="video/mp4" />
+              </video>
+            ) : (
+              <img
+                src="/Sage Set Poster.png"
+                alt="SageSet mobile app preview"
+                className="h-full max-h-[520px] w-full object-cover"
+                loading="eager"
+              />
+            )}
           </div>
         </div>
       </section>

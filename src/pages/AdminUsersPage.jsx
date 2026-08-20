@@ -17,12 +17,15 @@ import { useAuth } from '../context/AuthContext';
 import AdminHeader from '../components/AdminHeader.jsx';
 import {
   getUserAdminDetail,
+  getAdminBillingDetail,
   getUserAdminPlanDetail,
   loadARSessionReviewBlob,
   getARChallengeRolloutForAdmin,
   getSprintCoachRolloutForAdmin,
   listUsersForAdmin,
   sendUserExpoNotification,
+  manageStripeSubscriptionForAdmin,
+  refundStripeChargeForAdmin,
   updateARChallengeRolloutForAdmin,
   updateSprintCoachRolloutForAdmin,
   updateSprintCoachUserAccessForAdmin,
@@ -47,6 +50,22 @@ const formatFileSize = (bytes) => {
   const value = Number(bytes || 0);
   return value > 0 ? `${(value / (1024 * 1024)).toFixed(1)} MB` : 'Unknown size';
 };
+
+const formatMoney = (amount, currency = 'usd') => {
+  const value = Number(amount || 0) / 100;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: String(currency || 'usd').toUpperCase(),
+    }).format(value);
+  } catch {
+    return `${value.toFixed(2)} ${String(currency || 'usd').toUpperCase()}`;
+  }
+};
+
+const createBillingOperationId = () =>
+  globalThis.crypto?.randomUUID?.() ||
+  `billing_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
 
 const formatUserLabel = (user) =>
   user?.displayName?.trim() || user?.email?.trim() || user?.uid || 'Unknown user';
@@ -234,6 +253,247 @@ function StatusChip({ children, tone = 'gray' }) {
     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${toneClasses[tone] || toneClasses.gray}`}>
       {children}
     </span>
+  );
+}
+
+function BillingManagementPanel({ uid, userEmail, onUserDataChanged }) {
+  const [billing, setBilling] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [workingAction, setWorkingAction] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [adminNote, setAdminNote] = useState('');
+  const [refundReason, setRefundReason] = useState('requested_by_customer');
+  const [refundAmounts, setRefundAmounts] = useState({});
+
+  const loadBilling = async () => {
+    if (!uid) return;
+    setLoading(true);
+    setError('');
+    try {
+      setBilling(await getAdminBillingDetail(uid));
+    } catch (loadError) {
+      setError(loadError?.message || 'Unable to load Stripe billing details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setBilling(null);
+    setMessage('');
+    setError('');
+    setAdminNote('');
+    setRefundAmounts({});
+    void loadBilling();
+  }, [uid]);
+
+  const supportSuffix = (result) => {
+    const notification = result?.supportNotification;
+    if (notification?.status === 'sent') {
+      return ` Support was notified at ${notification.recipient}.`;
+    }
+    return ` The support notification is queued for retry at ${notification?.recipient || 'support@worksidesoftware.com'}.`;
+  };
+
+  const changeSubscription = async (action) => {
+    const confirmations = {
+      schedule_cancel: 'Schedule cancellation at the end of the current Stripe billing period?',
+      undo_cancel: 'Keep this Stripe subscription active and remove the scheduled cancellation?',
+    };
+    if (action === 'cancel_immediately') {
+      const confirmation = window.prompt(
+        'This immediately ends Stripe access and cannot be undone. Type CANCEL to continue.'
+      );
+      if (confirmation !== 'CANCEL') return;
+    } else if (!window.confirm(confirmations[action])) {
+      return;
+    }
+
+    setWorkingAction(action);
+    setError('');
+    setMessage('');
+    try {
+      const result = await manageStripeSubscriptionForAdmin({
+        uid,
+        action,
+        note: adminNote,
+        operationId: createBillingOperationId(),
+      });
+      setBilling(result?.billing || null);
+      setMessage(
+        `${action === 'schedule_cancel' ? 'Cancellation scheduled.' : action === 'undo_cancel' ? 'Scheduled cancellation removed.' : 'Subscription canceled immediately.'}${supportSuffix(result)}`
+      );
+      setAdminNote('');
+      void onUserDataChanged?.();
+    } catch (actionError) {
+      setError(actionError?.message || 'Unable to update the Stripe subscription.');
+    } finally {
+      setWorkingAction('');
+    }
+  };
+
+  const issueRefund = async (charge) => {
+    const rawAmount = refundAmounts[charge.id];
+    const dollars = rawAmount == null || rawAmount === ''
+      ? Number(charge.refundableAmount || 0) / 100
+      : Number(rawAmount);
+    const amount = Math.round(dollars * 100);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > Number(charge.refundableAmount || 0)) {
+      setError(`Enter a refund between ${formatMoney(1, charge.currency)} and ${formatMoney(charge.refundableAmount, charge.currency)}.`);
+      return;
+    }
+    const confirmation = window.prompt(
+      `Refund ${formatMoney(amount, charge.currency)} to ${userEmail || uid}? This cannot be undone. Type REFUND to continue.`
+    );
+    if (confirmation !== 'REFUND') return;
+
+    setWorkingAction(`refund:${charge.id}`);
+    setError('');
+    setMessage('');
+    try {
+      const result = await refundStripeChargeForAdmin({
+        uid,
+        chargeId: charge.id,
+        amount,
+        reason: refundReason,
+        note: adminNote,
+        operationId: createBillingOperationId(),
+      });
+      setBilling(result?.billing || null);
+      setMessage(`Refund ${result?.refund?.status || 'submitted'} for ${formatMoney(result?.refund?.amount, result?.refund?.currency)}.${supportSuffix(result)}`);
+      setAdminNote('');
+      setRefundAmounts((current) => {
+        const next = { ...current };
+        delete next[charge.id];
+        return next;
+      });
+      void onUserDataChanged?.();
+    } catch (refundError) {
+      setError(refundError?.message || 'Unable to issue the Stripe refund.');
+    } finally {
+      setWorkingAction('');
+    }
+  };
+
+  const subscription = billing?.subscription;
+  const stripeManaged = billing?.stripeManaged === true;
+  const canceled = subscription?.status === 'canceled' || subscription?.status === 'cancelled';
+
+  return (
+    <section className="rounded-2xl border border-cyan-500/25 bg-gray-800/90 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <SectionHeading help="Live provider-backed billing controls. These actions call Stripe from an admin-only Cloud Function and are recorded in the admin audit log.">
+            Subscription & Refund Management
+          </SectionHeading>
+          <p className="mt-2 text-sm text-gray-400">
+            Changes send an audit email to support@worksidesoftware.com after the provider confirms them.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={loadBilling}
+          disabled={loading || Boolean(workingAction)}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-600 px-3 py-2 text-sm font-medium text-gray-100 hover:bg-gray-700 disabled:opacity-50"
+        >
+          <ArrowPathIcon className="h-4 w-4" />
+          Refresh billing
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="mt-5"><LoadingProgress label="Loading provider billing" detail="Retrieving the live subscription and recent Stripe charges." progress={68} /></div>
+      ) : error && !billing ? (
+        <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>
+      ) : (
+        <>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <StatusChip tone={stripeManaged ? 'emerald' : 'amber'}>{billing?.provider || 'No provider'}</StatusChip>
+            <StatusChip tone={subscription?.status === 'active' || subscription?.status === 'trialing' ? 'emerald' : canceled ? 'rose' : 'amber'}>
+              {subscription?.status || billing?.storedStatus || 'No subscription'}
+            </StatusChip>
+            {subscription?.cancelAtPeriodEnd ? <StatusChip tone="rose">Cancels at period end</StatusChip> : null}
+          </div>
+
+          {!stripeManaged ? (
+            <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
+              <p>{billing?.managementMessage}</p>
+              {billing?.provider === 'apple' ? (
+                <a className="mt-3 inline-block font-semibold underline" href="https://appstoreconnect.apple.com/" target="_blank" rel="noreferrer">
+                  Open App Store Connect
+                </a>
+              ) : billing?.provider === 'google_play' ? (
+                <a className="mt-3 inline-block font-semibold underline" href="https://play.google.com/console/" target="_blank" rel="noreferrer">
+                  Open Google Play Console
+                </a>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4"><div className="text-xs uppercase tracking-wide text-gray-500">Subscription</div><div className="mt-2 break-all font-mono text-sm text-white">{subscription?.id || 'Not found'}</div></div>
+                <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4"><div className="text-xs uppercase tracking-wide text-gray-500">Renews / ends</div><div className="mt-2 text-sm text-white">{formatDateTime(subscription?.currentPeriodEnd)}</div></div>
+                <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4"><div className="text-xs uppercase tracking-wide text-gray-500">Price</div><div className="mt-2 text-sm text-white">{subscription?.price?.amount == null ? 'Not available' : `${formatMoney(subscription.price.amount, subscription.price.currency)} / ${subscription.price.interval || 'period'}`}</div></div>
+                <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4"><div className="text-xs uppercase tracking-wide text-gray-500">Customer</div><div className="mt-2 break-all font-mono text-sm text-white">{billing?.customerId}</div></div>
+              </div>
+
+              {subscription?.dashboardUrl ? <a className="mt-3 inline-block text-sm font-semibold text-cyan-300 hover:text-cyan-200" href={subscription.dashboardUrl} target="_blank" rel="noreferrer">Open subscription in Stripe ↗</a> : null}
+
+              <label className="mt-5 block">
+                <span className="text-sm font-medium text-gray-300">Internal reason / note</span>
+                <textarea value={adminNote} onChange={(event) => setAdminNote(event.target.value)} rows={2} maxLength={500} placeholder="Optional context for the audit log and support email" className="mt-2 w-full rounded-xl border border-gray-600 bg-gray-950/50 px-4 py-3 text-sm text-white placeholder-gray-500" />
+              </label>
+
+              {subscription ? (
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <button type="button" disabled={Boolean(workingAction) || canceled || subscription.cancelAtPeriodEnd} onClick={() => changeSubscription('schedule_cancel')} className="rounded-xl bg-amber-700 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400">{workingAction === 'schedule_cancel' ? 'Scheduling…' : 'Cancel at period end'}</button>
+                  <button type="button" disabled={Boolean(workingAction) || canceled || !subscription.cancelAtPeriodEnd} onClick={() => changeSubscription('undo_cancel')} className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400">{workingAction === 'undo_cancel' ? 'Updating…' : 'Keep subscription active'}</button>
+                  <button type="button" disabled={Boolean(workingAction) || canceled} onClick={() => changeSubscription('cancel_immediately')} className="rounded-xl bg-red-800 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400">{workingAction === 'cancel_immediately' ? 'Canceling…' : 'Cancel immediately'}</button>
+                </div>
+              ) : null}
+
+              <div className="mt-7 border-t border-gray-700 pt-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-semibold text-white">Recent Stripe payments</h4>
+                    <p className="mt-1 text-xs text-gray-500">Refunds do not automatically cancel the subscription.</p>
+                  </div>
+                  <select value={refundReason} onChange={(event) => setRefundReason(event.target.value)} className="rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-white">
+                    <option value="requested_by_customer">Requested by customer</option>
+                    <option value="duplicate">Duplicate charge</option>
+                    <option value="fraudulent">Fraudulent</option>
+                  </select>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {(billing?.charges || []).length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-gray-700 p-5 text-center text-sm text-gray-400">No Stripe charges found.</div>
+                  ) : billing.charges.map((charge) => (
+                    <div key={charge.id} className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <div className="font-semibold text-white">{formatMoney(charge.amount, charge.currency)} · {charge.paymentMethod || 'Payment method unavailable'}</div>
+                          <div className="mt-1 text-xs text-gray-400">{formatDateTime(charge.createdAt)} · {charge.id}</div>
+                          {charge.amountRefunded > 0 ? <div className="mt-1 text-xs text-amber-300">Refunded {formatMoney(charge.amountRefunded, charge.currency)} · {formatMoney(charge.refundableAmount, charge.currency)} remaining</div> : null}
+                          <div className="mt-2 flex gap-3 text-xs"><a className="text-cyan-300 hover:underline" href={charge.dashboardUrl} target="_blank" rel="noreferrer">Stripe payment ↗</a>{charge.receiptUrl ? <a className="text-cyan-300 hover:underline" href={charge.receiptUrl} target="_blank" rel="noreferrer">Receipt ↗</a> : null}</div>
+                        </div>
+                        <div className="flex min-w-[250px] flex-wrap items-end gap-2">
+                          <label className="flex-1"><span className="block text-xs text-gray-500">Refund amount</span><input type="number" min="0.01" step="0.01" max={(Number(charge.refundableAmount || 0) / 100).toFixed(2)} value={refundAmounts[charge.id] ?? (Number(charge.refundableAmount || 0) / 100).toFixed(2)} onChange={(event) => setRefundAmounts((current) => ({...current, [charge.id]: event.target.value}))} disabled={charge.refundableAmount <= 0 || Boolean(workingAction)} className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white disabled:text-gray-500" /></label>
+                          <button type="button" onClick={() => issueRefund(charge)} disabled={charge.refundableAmount <= 0 || Boolean(workingAction) || !charge.paid} className="rounded-lg bg-red-800 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400">{workingAction === `refund:${charge.id}` ? 'Refunding…' : charge.refundableAmount <= 0 ? 'Fully refunded' : 'Issue refund'}</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {message ? <div className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{message}</div> : null}
+          {error ? <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div> : null}
+        </>
+      )}
+    </section>
   );
 }
 
@@ -1302,6 +1562,12 @@ export default function AdminUsersPage() {
                         </div>
                       </div>
                     </div>
+
+                    <BillingManagementPanel
+                      uid={selectedUserId}
+                      userEmail={selectedDetail.profile?.email}
+                      onUserDataChanged={() => selectUser(selectedUserId, { force: true })}
+                    />
 
                     <div className="rounded-2xl border border-gray-700 bg-gray-800/90 p-6">
                       <SectionHeading help="Membership changes, test enrollments, and entitlement maintenance are grouped separately to reduce accidental changes.">

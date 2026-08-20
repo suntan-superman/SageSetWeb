@@ -21,6 +21,7 @@ import AdminUsagePage from './pages/AdminUsagePage.jsx';
 import AdminReleasesPage from './pages/AdminReleasesPage.jsx';
 import AdminSprintFeedbackPage from './pages/AdminSprintFeedbackPage.jsx';
 import ProductUpdatesPage from './pages/ProductUpdatesPage.jsx';
+import ConceptValidationPage from './pages/ConceptValidationPage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { initMetaPixel, trackPageView } from './services/metaPixel.js';
 import { flushWorksideEvents, trackWorksideEvent } from './services/worksideAnalytics.js';
@@ -106,6 +107,7 @@ const marketingRoutes = [
   '/features',
   '/pricing',
   '/download',
+  '/ar-squats',
 ];
 
 const infoRoutes = [
@@ -117,6 +119,13 @@ const infoRoutes = [
   '/billing/success',
   '/billing/cancel',
   '/account/billing',
+];
+
+const conceptRoutes = [
+  '/concept/verified-challenges',
+  '/concept/sagescore',
+  '/concept/achievements',
+  '/concept/onboarding',
 ];
 
 const signedInMarketingDestinations = {
@@ -248,6 +257,13 @@ export default function App() {
             key={path}
             path={path}
             element={<Layout><SimpleInfoPage path={path} /></Layout>}
+          />
+        ))}
+        {conceptRoutes.map((path) => (
+          <Route
+            key={path}
+            path={path}
+            element={<Layout><ConceptValidationPage path={path} /></Layout>}
           />
         ))}
         <Route path="/privacy" element={<Layout><PrivacyPolicyPage /></Layout>} />

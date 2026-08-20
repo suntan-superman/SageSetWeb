@@ -61,6 +61,37 @@ export async function getUserAdminDetail(uid) {
   return await callAdminFunction('getUserAdminDetail', { uid });
 }
 
+export async function getAdminBillingDetail(uid) {
+  return await callAdminFunction('getAdminBillingDetail', { uid });
+}
+
+export async function manageStripeSubscriptionForAdmin({ uid, action, note = '', operationId }) {
+  return await callAdminFunction('manageStripeSubscriptionForAdmin', {
+    uid,
+    action,
+    note,
+    operationId,
+  });
+}
+
+export async function refundStripeChargeForAdmin({
+  uid,
+  chargeId,
+  amount = null,
+  reason = 'requested_by_customer',
+  note = '',
+  operationId,
+}) {
+  return await callAdminFunction('refundStripeChargeForAdmin', {
+    uid,
+    chargeId,
+    amount,
+    reason,
+    note,
+    operationId,
+  });
+}
+
 export async function loadARSessionReviewBlob(storagePath) {
   if (!String(storagePath || '').startsWith('ar-session-reviews/')) {
     throw new Error('Invalid AR session review path.');
