@@ -170,3 +170,11 @@ export async function listSprintCoachFeedbackForAdmin(limit = 100) {
     }
   );
 }
+
+export async function getGamificationFoundationForAdmin() {
+  return await callAdminFunction('getGamificationFoundationForAdmin', {});
+}
+
+export async function updateGamificationFoundationForAdmin(payload) {
+  return await callAdminFunction('updateGamificationFoundationForAdmin', payload);
+}

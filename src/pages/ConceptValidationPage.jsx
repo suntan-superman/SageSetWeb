@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { CheckBadgeIcon, FireIcon, ShieldCheckIcon, SparklesIcon, TrophyIcon } from '@heroicons/react/24/outline';
-import { trackWorksideEvent } from '../services/worksideAnalytics.js';
+import { trackGamificationValidationEvent } from '../services/gamificationValidationAnalytics.js';
 
 const CONCEPTS_ENABLED = import.meta.env.VITE_ENABLE_GAMIFICATION_CONCEPTS === 'true';
 
@@ -62,7 +62,7 @@ export default function ConceptValidationPage({ path = '/concept/verified-challe
 
   useEffect(() => {
     if (!CONCEPTS_ENABLED) return;
-    void trackWorksideEvent('concept_page_viewed', {
+    void trackGamificationValidationEvent('concept_page_viewed', {
       concept: config.id,
       version: 'phase0-v0',
     }, { page: path });
@@ -80,7 +80,7 @@ export default function ConceptValidationPage({ path = '/concept/verified-challe
   }
 
   const handleCta = () => {
-    void trackWorksideEvent('concept_cta_clicked', {
+    void trackGamificationValidationEvent('concept_cta_clicked', {
       concept: config.id,
       cta: config.cta,
       version: 'phase0-v0',
@@ -90,7 +90,7 @@ export default function ConceptValidationPage({ path = '/concept/verified-challe
 
   const submitPreference = (value) => {
     setPreference(value);
-    void trackWorksideEvent('concept_preference_submitted', {
+    void trackGamificationValidationEvent('concept_preference_submitted', {
       concept: config.id,
       preference: value,
       version: 'phase0-v0',
@@ -149,7 +149,7 @@ export default function ConceptValidationPage({ path = '/concept/verified-challe
             ))}
           </div>
           <div className="mt-10 text-center">
-            <Link to="/signup" onClick={() => void trackWorksideEvent('concept_waitlist_intent', { concept: config.id, version: 'phase0-v0' }, { page: path })} className="font-bold text-sage-700 hover:text-sage-900">Start with SageSet today →</Link>
+            <Link to="/signup" onClick={() => void trackGamificationValidationEvent('concept_waitlist_intent', { concept: config.id, version: 'phase0-v0' }, { page: path })} className="font-bold text-sage-700 hover:text-sage-900">Start with SageSet today →</Link>
           </div>
         </div>
       </section>

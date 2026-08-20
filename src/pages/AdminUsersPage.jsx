@@ -21,12 +21,14 @@ import {
   getUserAdminPlanDetail,
   loadARSessionReviewBlob,
   getARChallengeRolloutForAdmin,
+  getGamificationFoundationForAdmin,
   getSprintCoachRolloutForAdmin,
   listUsersForAdmin,
   sendUserExpoNotification,
   manageStripeSubscriptionForAdmin,
   refundStripeChargeForAdmin,
   updateARChallengeRolloutForAdmin,
+  updateGamificationFoundationForAdmin,
   updateSprintCoachRolloutForAdmin,
   updateSprintCoachUserAccessForAdmin,
   updateUserAccessForAdmin,
@@ -655,6 +657,150 @@ function ARChallengeRolloutPanel() {
   );
 }
 
+function GamificationFoundationPanel() {
+  const [foundation, setFoundation] = useState(null);
+  const [rolloutPercentDraft, setRolloutPercentDraft] = useState('0');
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadFoundation = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await getGamificationFoundationForAdmin();
+      setFoundation(result);
+      setRolloutPercentDraft(String(result?.policy?.rolloutPercent ?? 0));
+    } catch (loadError) {
+      setError(loadError?.message || 'Unable to load the gamification foundation policy.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFoundation();
+  }, []);
+
+  const policy = foundation?.policy || {};
+  const updatePolicy = async (field, value) => {
+    setUpdating(true);
+    setError('');
+    try {
+      setFoundation(await updateGamificationFoundationForAdmin({ [field]: value }));
+    } catch (updateError) {
+      setError(updateError?.message || 'Unable to update the gamification foundation policy.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const controls = [
+    ['conceptsEnabled', 'Validation concepts', 'Enables the server policy for future concept previews. The mobile/web build gate is still required.'],
+    ['scoreEnabled', 'SageScore', 'Reserves the candidate score contract. No user score is calculated or written in this phase.'],
+    ['xpEnabled', 'XP', 'Reserves cumulative participation points. No XP is awarded in this phase.'],
+    ['achievementsEnabled', 'Achievements', 'Reserves achievement definitions. Nothing is unlocked in this phase.'],
+    ['challengesEnabled', 'Verified challenges', 'Reserves challenge access. No challenge results or rankings are created in this phase.'],
+    ['publicEnabled', 'Public rollout', 'Allows the configured rollout percentage to become eligible. Keep off for tester-only validation.'],
+    ['allowTesterAccess', 'Tester rollout', 'Allows users with the per-account gamification tester flag to become eligible.'],
+  ];
+
+  const saveRolloutPercent = async () => {
+    const value = Number(rolloutPercentDraft);
+    if (!Number.isFinite(value) || value < 0 || value > 100) {
+      setError('Rollout percentage must be between 0 and 100.');
+      return;
+    }
+    await updatePolicy('rolloutPercent', Math.floor(value));
+  };
+
+  return (
+    <section className="mt-8 rounded-2xl border border-violet-500/30 bg-violet-500/5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">Gamification Foundation</h2>
+            <HelpTooltip
+              label="About the gamification foundation"
+              text="These controls are server-owned guardrails for the future SageScore, XP, rank, achievement, and verified-challenge pilots. They do not create scores, award XP, or change the production workout experience."
+            />
+            <StatusChip tone={policy.globallyEnabled ? 'amber' : 'emerald'}>
+              {loading ? 'Checking policy' : policy.globallyEnabled ? 'Pilot policy enabled' : 'Fail-closed'}
+            </StatusChip>
+          </div>
+          <p className="mt-2 max-w-3xl text-sm text-gray-300">
+            Candidate version <span className="font-mono text-violet-200">{foundation?.version || 'candidate-v0'}</span>. Keep this policy disabled while concept pages and tester research are validated. Build-time gates remain authoritative for user-facing previews.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <StatusChip tone={policy.scoreEnabled ? 'amber' : 'gray'}>SageScore {policy.scoreEnabled ? 'reserved' : 'off'}</StatusChip>
+            <StatusChip tone={policy.xpEnabled ? 'amber' : 'gray'}>XP {policy.xpEnabled ? 'reserved' : 'off'}</StatusChip>
+            <StatusChip tone={policy.achievementsEnabled ? 'amber' : 'gray'}>Achievements {policy.achievementsEnabled ? 'reserved' : 'off'}</StatusChip>
+            <StatusChip tone={policy.challengesEnabled ? 'amber' : 'gray'}>Challenges {policy.challengesEnabled ? 'reserved' : 'off'}</StatusChip>
+          </div>
+          {policy.updatedAt ? <p className="mt-2 text-xs text-gray-500">Last changed {formatDateTime(policy.updatedAt)}</p> : null}
+          {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+        </div>
+        <button
+          type="button"
+          onClick={loadFoundation}
+          disabled={loading || updating}
+          className="rounded-lg border border-gray-600 px-3 py-2 text-sm font-medium text-gray-100 transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Refresh
+        </button>
+        <div className="mt-4 grid w-full gap-3 border-t border-violet-500/20 pt-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-gray-700/80 bg-gray-900/30 p-3">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-gray-100">Rollout percentage</span>
+              <HelpTooltip text="Deterministically includes a percentage of users when Public rollout is enabled. Keep at 0 for tester-only validation." label="About rollout percentage" />
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={rolloutPercentDraft}
+                onChange={(event) => setRolloutPercentDraft(event.target.value)}
+                disabled={loading || updating}
+                className="w-full rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white"
+                aria-label="Gamification rollout percentage"
+              />
+              <button
+                type="button"
+                onClick={saveRolloutPercent}
+                disabled={loading || updating}
+                className="rounded-lg bg-violet-700 px-3 py-2 text-sm font-medium text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+          {controls.map(([field, label, help]) => {
+            const enabled = policy[field] === true;
+            return (
+              <div key={field} className="rounded-xl border border-gray-700/80 bg-gray-900/30 p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-gray-100">{label}</span>
+                  <HelpTooltip text={help} label={`About ${label}`} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updatePolicy(field, !enabled)}
+                  disabled={loading || updating}
+                  className={`w-full rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${enabled ? 'bg-red-700 hover:bg-red-600' : 'bg-violet-700 hover:bg-violet-600'}`}
+                >
+                  {enabled ? `Disable ${label}` : `Enable ${label}`}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SprintCoachRolloutPanel() {
   const [rollout, setRollout] = useState(null);
   const [draft, setDraft] = useState({
@@ -1226,6 +1372,7 @@ export default function AdminUsersPage() {
         toggle_arkit_beta: 'AR squat feature access updated.',
         toggle_pushup_beta: 'Push-up feature access updated.',
         toggle_smart_return_beta: 'Smart Return feature access updated. Take a Break is unchanged.',
+        toggle_gamification_concepts: 'Gamification concept tester access updated. No live scoring or XP was enabled.',
         recalculate: 'Entitlements recalculated.',
       };
       const notificationLabels = {
@@ -1306,6 +1453,7 @@ export default function AdminUsersPage() {
         </div>
 
         <ARChallengeRolloutPanel />
+        <GamificationFoundationPanel />
         <SprintCoachRolloutPanel />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
@@ -1482,6 +1630,9 @@ export default function AdminUsersPage() {
                           {selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? (
                             <StatusChip tone="blue">Smart Return check-in tester</StatusChip>
                           ) : null}
+                          {selectedDetail.rawUserData?.betaFlags?.gamificationConcepts === true || selectedDetail.rawUserData?.featureFlags?.gamificationConceptsEnabled === true ? (
+                            <StatusChip tone="blue">Gamification concepts tester</StatusChip>
+                          ) : null}
                         </div>
 
                         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -1603,6 +1754,7 @@ export default function AdminUsersPage() {
                             <DetailRow label="AR Squat Test" value={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Enrolled' : 'Not enrolled'} help="Allows this user to test AR squats while the AR master rollout is enabled." />
                             <DetailRow label="Push-up Test" value={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Enrolled' : 'Not enrolled'} help="Allows this user to test AR push-ups while the AR master rollout is enabled." />
                             <DetailRow label="Smart Return Check-in Test" value={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Enrolled' : 'Not enrolled'} help="Enables the enhanced return check-in and recommendations after a break. Take a Break itself remains available even when this is disabled." />
+                            <DetailRow label="Gamification Concepts Test" value={selectedDetail.rawUserData?.betaFlags?.gamificationConcepts === true || selectedDetail.rawUserData?.featureFlags?.gamificationConceptsEnabled === true ? 'Enrolled' : 'Not enrolled'} help="Marks this account as an internal tester for future onboarding, SageScore, rank, achievement, and verified-challenge concepts. The server policy and build gate still apply." />
                             <DetailRow
                               label="Sprint Coach"
                               value={selectedDetail.rawUserData?.featureAccess?.sprintCoach?.enabled === true ? `Enrolled (${selectedDetail.rawUserData?.featureAccess?.sprintCoach?.accessLevel || 'tester'})` : 'Not enrolled'}
@@ -1619,6 +1771,7 @@ export default function AdminUsersPage() {
                             <AccessActionButton action="toggle_arkit_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Remove AR squat access' : 'Grant AR squat access'} help="Toggles per-user AR squat access during controlled rollout. The global AR master switch must also be enabled. If the notification option below is selected, SageSet sends an informational push when possible." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                             <AccessActionButton action="toggle_pushup_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Remove push-up access' : 'Grant push-up access'} help="Toggles per-user AR push-up access during controlled rollout. The global AR master switch must also be enabled. If the notification option below is selected, SageSet sends an informational push when possible." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                             <AccessActionButton action="toggle_smart_return_beta" label={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Remove Smart Return access' : 'Grant Smart Return access'} help="Toggles only the Smart Return check-in and recommendations. It does not remove the Take a Break action." onAction={handleAccessAction} loadingAction={accessActionLoading} />
+                            <AccessActionButton action="toggle_gamification_concepts" label={selectedDetail.rawUserData?.betaFlags?.gamificationConcepts === true || selectedDetail.rawUserData?.featureFlags?.gamificationConceptsEnabled === true ? 'Remove gamification tester access' : 'Grant gamification tester access'} help="Marks this user for internal concept validation only. It does not award points, expose production gamification, or bypass the build-time concept gate." onAction={handleAccessAction} loadingAction={accessActionLoading} tone="blue" />
                           </div>
                           <div className="mt-4 rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-3">
                             <div className="flex items-center gap-2 text-sm font-semibold text-cyan-100">
