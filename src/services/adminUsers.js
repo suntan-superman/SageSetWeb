@@ -178,3 +178,23 @@ export async function getGamificationFoundationForAdmin() {
 export async function updateGamificationFoundationForAdmin(payload) {
   return await callAdminFunction('updateGamificationFoundationForAdmin', payload);
 }
+
+export async function getGamificationPilotSpecForAdmin() {
+  return await callAdminFunction('getGamificationPilotSpecForAdmin', {});
+}
+
+export async function listGamificationAnomalyReviewsForAdmin(limit = 50) {
+  return (
+    (await callAdminFunction('listGamificationAnomalyReviewsForAdmin', { limit })) || {
+      reviews: [],
+    }
+  );
+}
+
+export async function resolveGamificationAnomalyReviewForAdmin({ reviewId, status, note = '' }) {
+  return await callAdminFunction('resolveGamificationAnomalyReviewForAdmin', {
+    reviewId,
+    status,
+    note,
+  });
+}

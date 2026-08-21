@@ -22,6 +22,7 @@ import {
   loadARSessionReviewBlob,
   getARChallengeRolloutForAdmin,
   getGamificationFoundationForAdmin,
+  listGamificationAnomalyReviewsForAdmin,
   getSprintCoachRolloutForAdmin,
   listUsersForAdmin,
   sendUserExpoNotification,
@@ -29,6 +30,7 @@ import {
   refundStripeChargeForAdmin,
   updateARChallengeRolloutForAdmin,
   updateGamificationFoundationForAdmin,
+  resolveGamificationAnomalyReviewForAdmin,
   updateSprintCoachRolloutForAdmin,
   updateSprintCoachUserAccessForAdmin,
   updateUserAccessForAdmin,
@@ -801,6 +803,113 @@ function GamificationFoundationPanel() {
   );
 }
 
+function GamificationIntegrityPanel() {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [workingId, setWorkingId] = useState('');
+  const [error, setError] = useState('');
+
+  const loadReviews = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await listGamificationAnomalyReviewsForAdmin(50);
+      setReviews(Array.isArray(result?.reviews) ? result.reviews : []);
+    } catch (loadError) {
+      setError(loadError?.message || 'Unable to load gamification integrity reviews.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReviews();
+  }, []);
+
+  const resolveReview = async (review, status) => {
+    if (!review?.id || workingId) return;
+    const action = status === 'resolved' ? 'resolve' : 'dismiss';
+    if (!window.confirm(`Are you sure you want to ${action} this integrity review?`)) return;
+    setWorkingId(review.id);
+    setError('');
+    try {
+      await resolveGamificationAnomalyReviewForAdmin({
+        reviewId: review.id,
+        status,
+        note: `Reviewed in SageSet admin on ${new Date().toISOString()}`,
+      });
+      setReviews((current) => current.map((item) => item.id === review.id ? { ...item, status } : item));
+    } catch (resolveError) {
+      setError(resolveError?.message || 'Unable to update the integrity review.');
+    } finally {
+      setWorkingId('');
+    }
+  };
+
+  const openCount = reviews.filter((review) => review.status === 'open').length;
+
+  return (
+    <section className="mt-8 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">Gamification Integrity Reviews</h2>
+            <HelpTooltip
+              label="About integrity reviews"
+              text="Future verified challenges must be reviewed for anomalous volume, confidence, timing, or duplicate attempts before any result can influence XP, achievements, or rankings. These records currently have no effect on user accounts."
+            />
+            <StatusChip tone={openCount > 0 ? 'rose' : 'emerald'}>{openCount} open</StatusChip>
+          </div>
+          <p className="mt-2 max-w-3xl text-sm text-gray-300">
+            Server-only review queue for candidate-v0 integrity signals. No review can award, remove, or publish gamification credit.
+          </p>
+          {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+        </div>
+        <button
+          type="button"
+          onClick={loadReviews}
+          disabled={loading || !!workingId}
+          className="rounded-lg border border-gray-600 px-3 py-2 text-sm font-medium text-gray-100 transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="mt-4"><LoadingProgress label="Loading integrity reviews" detail="Checking the server-owned review queue." progress={62} /></div>
+      ) : reviews.length === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-gray-700 px-4 py-6 text-center text-sm text-gray-400">
+          No integrity reviews have been created. This is expected while verified challenges remain gated.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {reviews.map((review) => (
+            <div key={review.id} className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-white">{review.category || 'Uncategorized'}</span>
+                    <StatusChip tone={review.severity === 'critical' || review.severity === 'high' ? 'rose' : review.severity === 'medium' ? 'amber' : 'gray'}>{review.severity || 'unknown'}</StatusChip>
+                    <StatusChip tone={review.status === 'open' ? 'rose' : 'emerald'}>{review.status || 'unknown'}</StatusChip>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-200">{review.summary || 'No summary provided.'}</p>
+                  <p className="mt-2 text-xs text-gray-500">User {review.userId || 'unknown'} · {review.source || 'unknown source'} · {formatDateTime(review.createdAt)}</p>
+                </div>
+                {review.status === 'open' ? (
+                  <div className="flex shrink-0 gap-2">
+                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'resolved')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-60">{workingId === review.id ? 'Working…' : 'Resolve'}</button>
+                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'dismissed')} className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-600 disabled:opacity-60">Dismiss</button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SprintCoachRolloutPanel() {
   const [rollout, setRollout] = useState(null);
   const [draft, setDraft] = useState({
@@ -1454,6 +1563,7 @@ export default function AdminUsersPage() {
 
         <ARChallengeRolloutPanel />
         <GamificationFoundationPanel />
+        <GamificationIntegrityPanel />
         <SprintCoachRolloutPanel />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
