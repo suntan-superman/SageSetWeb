@@ -910,6 +910,63 @@ function GamificationIntegrityPanel() {
   );
 }
 
+function ProgressionOnboardingPanel({ snapshot }) {
+  const answers = snapshot?.answers && typeof snapshot.answers === 'object' ? snapshot.answers : null;
+  const candidate = snapshot?.candidateStartingPoint || {};
+
+  return (
+    <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-semibold text-white">Progression onboarding snapshot</h3>
+            <HelpTooltip
+              label="About progression onboarding snapshots"
+              text="Server-owned answers from the gated concept onboarding flow. This is validation data only; it does not change plan generation, SageScore, XP, ranks, or achievements."
+            />
+            <StatusChip tone={snapshot ? 'emerald' : 'gray'}>{snapshot ? 'Captured' : 'Not captured'}</StatusChip>
+          </div>
+          <p className="mt-2 text-sm text-gray-400">
+            Review consent, the candidate starting point, and answer patterns for pilot research.
+          </p>
+        </div>
+        {snapshot?.updatedAt ? <div className="text-right text-xs text-gray-500">Updated {formatDateTime(snapshot.updatedAt)}</div> : null}
+      </div>
+
+      {!snapshot ? (
+        <div className="mt-4 rounded-xl border border-dashed border-gray-700 px-4 py-5 text-sm text-gray-400">
+          This account has not completed the gated progression onboarding flow.
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Candidate starting point</div>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div>
+                <div className="text-3xl font-semibold text-white">{candidate.score ?? '—'}</div>
+                <div className="mt-1 text-sm text-gray-400">SageScore · {candidate.rank || 'Unrated'}</div>
+              </div>
+              <StatusChip tone="amber">{candidate.version || 'candidate-v0'}</StatusChip>
+            </div>
+            <div className="mt-4 text-xs text-gray-500">
+              Consent: <span className="text-emerald-200">{snapshot.validationConsent?.granted === true ? 'Granted' : 'Not granted'}</span>
+            </div>
+            {snapshot.validationConsent?.grantedAt ? <div className="mt-1 text-xs text-gray-500">Granted {formatDateTime(snapshot.validationConsent.grantedAt)}</div> : null}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {answers ? Object.entries(answers).map(([question, answer]) => (
+              <div key={question} className="rounded-xl border border-gray-700 bg-gray-900/35 px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{question.replace(/([A-Z])/g, ' $1')}</div>
+                <div className="mt-1 text-sm font-medium text-gray-100">{String(answer || 'Not answered')}</div>
+              </div>
+            )) : <div className="text-sm text-gray-400">No answers were saved.</div>}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SprintCoachRolloutPanel() {
   const [rollout, setRollout] = useState(null);
   const [draft, setDraft] = useState({
@@ -1823,6 +1880,8 @@ export default function AdminUsersPage() {
                         </div>
                       </div>
                     </div>
+
+                    <ProgressionOnboardingPanel snapshot={selectedDetail.progressionOnboarding} />
 
                     <BillingManagementPanel
                       uid={selectedUserId}
