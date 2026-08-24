@@ -1006,6 +1006,7 @@ function GamificationProgressionPanel({ progression }) {
   const score = state?.score || {};
   const xp = state?.xp || {};
   const achievements = progression?.recentAchievements || [];
+  const personalRecords = progression?.recentPersonalRecords || [];
   const scoreHistory = progression?.recentScoreHistory || [];
   const sources = score?.componentSources || {};
 
@@ -1034,7 +1035,7 @@ function GamificationProgressionPanel({ progression }) {
         </div>
       ) : (
         <div className="mt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Candidate SageScore</div>
               <div className="mt-2 text-3xl font-semibold text-white">{score.value ?? '—'}</div>
@@ -1055,9 +1056,14 @@ function GamificationProgressionPanel({ progression }) {
               <div className="mt-2 text-3xl font-semibold text-white">{scoreHistory.length}</div>
               <div className="mt-1 text-sm text-gray-400">Recent immutable records</div>
             </div>
+            <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Personal records</div>
+              <div className="mt-2 text-3xl font-semibold text-white">{state.activity?.personalRecords ?? 0}</div>
+              <div className="mt-1 text-sm text-gray-400">Recorded, not AR verified</div>
+            </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-3">
             <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
               <div className="text-sm font-semibold text-white">Component provenance</div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -1085,6 +1091,20 @@ function GamificationProgressionPanel({ progression }) {
                     <div className="mt-1 text-xs text-gray-500">{achievement.sourceClassification || 'unknown source'} · {formatDateTime(achievement.unlockedAt)}</div>
                   </div>
                 )) : <div className="text-sm text-gray-500">No achievements unlocked yet.</div>}
+              </div>
+            </div>
+            <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="text-sm font-semibold text-white">Recent personal records</div>
+              <div className="mt-3 space-y-2">
+                {personalRecords.length ? personalRecords.map((record) => (
+                  <div key={record.id} className="rounded-lg border border-gray-700 px-3 py-2">
+                    <div className="text-sm font-medium text-gray-100">{record.exerciseName || record.exerciseKey || 'Exercise'}</div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {record.lastImprovementTypes?.join(', ').replaceAll('_', ' ') || 'recorded best'} · {formatDateTime(record.lastRecordAt)}
+                    </div>
+                    <div className="mt-1 text-[11px] text-amber-300">Recorded · Not SageSet Verified</div>
+                  </div>
+                )) : <div className="text-sm text-gray-500">No post-baseline personal records yet.</div>}
               </div>
             </div>
           </div>
