@@ -251,6 +251,7 @@ function StatusChip({ children, tone = 'gray' }) {
     amber: 'bg-amber-500/15 text-amber-300',
     blue: 'bg-blue-500/15 text-blue-300',
     rose: 'bg-rose-500/15 text-rose-300',
+    violet: 'bg-violet-500/15 text-violet-300',
   };
 
   return (
@@ -698,10 +699,10 @@ function GamificationFoundationPanel() {
   };
 
   const controls = [
-    ['conceptsEnabled', 'Validation concepts', 'Enables the server policy for future concept previews. The mobile/web build gate is still required.'],
-    ['scoreEnabled', 'SageScore', 'Reserves the candidate score contract. No user score is calculated or written in this phase.'],
-    ['xpEnabled', 'XP', 'Reserves cumulative participation points. No XP is awarded in this phase.'],
-    ['achievementsEnabled', 'Achievements', 'Reserves achievement definitions. Nothing is unlocked in this phase.'],
+    ['conceptsEnabled', 'Validation concepts', 'Enables server access for enrolled internal testers. The mobile build gate is still required.'],
+    ['scoreEnabled', 'SageScore', 'Calculates a private candidate SageScore and immutable history for eligible internal testers.'],
+    ['xpEnabled', 'XP', 'Awards replay-safe, non-decreasing pilot XP to eligible internal testers.'],
+    ['achievementsEnabled', 'Achievements', 'Unlocks replay-safe pilot achievements for eligible internal testers.'],
     ['challengesEnabled', 'Verified challenges', 'Reserves challenge access. No challenge results or rankings are created in this phase.'],
     ['publicEnabled', 'Public rollout', 'Allows the configured rollout percentage to become eligible. Keep off for tester-only validation.'],
     ['allowTesterAccess', 'Tester rollout', 'Allows users with the per-account gamification tester flag to become eligible.'],
@@ -724,19 +725,19 @@ function GamificationFoundationPanel() {
             <h2 className="text-lg font-semibold text-white">Gamification Foundation</h2>
             <HelpTooltip
               label="About the gamification foundation"
-              text="These controls are server-owned guardrails for the future SageScore, XP, rank, achievement, and verified-challenge pilots. They do not create scores, award XP, or change the production workout experience."
+               text="These controls are server-owned guardrails for internal SageScore, XP, rank, achievement, and verified-challenge pilots. Score, XP, and achievement switches create private pilot state only for eligible users whose build also contains the concept gate."
             />
             <StatusChip tone={policy.globallyEnabled ? 'amber' : 'emerald'}>
               {loading ? 'Checking policy' : policy.globallyEnabled ? 'Pilot policy enabled' : 'Fail-closed'}
             </StatusChip>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-gray-300">
-            Candidate version <span className="font-mono text-violet-200">{foundation?.version || 'candidate-v0'}</span>. Keep this policy disabled while concept pages and tester research are validated. Build-time gates remain authoritative for user-facing previews.
+             Candidate version <span className="font-mono text-violet-200">{foundation?.version || 'candidate-v0'}</span>. For a tester-only pilot, keep Public rollout off and rollout percentage at 0, enable Tester rollout, and enroll accounts individually. Build-time gates remain authoritative.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <StatusChip tone={policy.scoreEnabled ? 'amber' : 'gray'}>SageScore {policy.scoreEnabled ? 'reserved' : 'off'}</StatusChip>
-            <StatusChip tone={policy.xpEnabled ? 'amber' : 'gray'}>XP {policy.xpEnabled ? 'reserved' : 'off'}</StatusChip>
-            <StatusChip tone={policy.achievementsEnabled ? 'amber' : 'gray'}>Achievements {policy.achievementsEnabled ? 'reserved' : 'off'}</StatusChip>
+             <StatusChip tone={policy.scoreEnabled ? 'amber' : 'gray'}>SageScore {policy.scoreEnabled ? 'pilot on' : 'off'}</StatusChip>
+             <StatusChip tone={policy.xpEnabled ? 'amber' : 'gray'}>XP {policy.xpEnabled ? 'pilot on' : 'off'}</StatusChip>
+             <StatusChip tone={policy.achievementsEnabled ? 'amber' : 'gray'}>Achievements {policy.achievementsEnabled ? 'pilot on' : 'off'}</StatusChip>
             <StatusChip tone={policy.challengesEnabled ? 'amber' : 'gray'}>Challenges {policy.challengesEnabled ? 'reserved' : 'off'}</StatusChip>
           </div>
           {policy.updatedAt ? <p className="mt-2 text-xs text-gray-500">Last changed {formatDateTime(policy.updatedAt)}</p> : null}
@@ -980,6 +981,99 @@ function ProgressionOnboardingPanel({ snapshot }) {
                   : 'The account has an experiment assignment, but no consented progression answers have been saved yet.'}
               </div>
             )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function GamificationProgressionPanel({ progression }) {
+  const state = progression?.state || null;
+  const score = state?.score || {};
+  const xp = state?.xp || {};
+  const achievements = progression?.recentAchievements || [];
+  const scoreHistory = progression?.recentScoreHistory || [];
+  const sources = score?.componentSources || {};
+
+  return (
+    <section className="rounded-2xl border border-violet-500/25 bg-violet-500/5 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-semibold text-white">Gamification progression pilot</h3>
+            <HelpTooltip
+              label="About progression pilot data"
+              text="Server-owned candidate SageScore, XP, achievements, and source classifications. Internal validation only; this is not a medical assessment, public ranking, or production promise."
+            />
+            <StatusChip tone={state ? 'violet' : 'gray'}>{state ? 'Calculated' : 'No state'}</StatusChip>
+          </div>
+          <p className="mt-2 text-sm text-gray-400">
+            Audit the current candidate state and confirm recorded, self-reported, and SageSet Verified inputs remain distinct.
+          </p>
+        </div>
+        {state?.updatedAt ? <div className="text-right text-xs text-gray-500">Updated {formatDateTime(state.updatedAt)}</div> : null}
+      </div>
+
+      {!state ? (
+        <div className="mt-4 rounded-xl border border-dashed border-gray-700 px-4 py-5 text-sm text-gray-400">
+          No server-owned progression state has been calculated for this user. The enrolled user must open the gated progression pilot after the new functions are deployed.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Candidate SageScore</div>
+              <div className="mt-2 text-3xl font-semibold text-white">{score.value ?? '—'}</div>
+              <div className="mt-1 text-sm text-violet-200">{score.rank || 'Unranked'} · {score.confidence ?? 0}% confidence</div>
+            </div>
+            <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">XP</div>
+              <div className="mt-2 text-3xl font-semibold text-white">{xp.total ?? 0}</div>
+              <div className="mt-1 text-sm text-gray-400">Immutable ledger awards</div>
+            </div>
+            <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Achievements</div>
+              <div className="mt-2 text-3xl font-semibold text-white">{state.achievements?.unlockedCount ?? 0}</div>
+              <div className="mt-1 text-sm text-gray-400">{achievements.length} recent shown</div>
+            </div>
+            <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Score snapshots</div>
+              <div className="mt-2 text-3xl font-semibold text-white">{scoreHistory.length}</div>
+              <div className="mt-1 text-sm text-gray-400">Recent immutable records</div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="text-sm font-semibold text-white">Component provenance</div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {Object.entries(sources).map(([component, sourceDetails]) => {
+                  const source = typeof sourceDetails === 'string' ? sourceDetails : sourceDetails?.classification || 'unknown';
+                  const label = typeof sourceDetails === 'object' && sourceDetails?.label ? sourceDetails.label : String(source).replaceAll('_', ' ');
+                  return (
+                    <div key={component} className="rounded-lg border border-gray-700 px-3 py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-gray-300">{component.replace(/([A-Z])/g, ' $1')}</span>
+                        <StatusChip tone={source === 'sageset_verified' ? 'emerald' : source === 'not_available' ? 'gray' : 'blue'}>{String(source).replaceAll('_', ' ')}</StatusChip>
+                      </div>
+                      <div className="mt-1 text-[11px] text-gray-500">{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+              <div className="text-sm font-semibold text-white">Recent achievements</div>
+              <div className="mt-3 space-y-2">
+                {achievements.length ? achievements.map((achievement) => (
+                  <div key={achievement.id} className="rounded-lg border border-gray-700 px-3 py-2">
+                    <div className="text-sm font-medium text-gray-100">{achievement.title || achievement.definitionId}</div>
+                    <div className="mt-1 text-xs text-gray-500">{achievement.sourceClassification || 'unknown source'} · {formatDateTime(achievement.unlockedAt)}</div>
+                  </div>
+                )) : <div className="text-sm text-gray-500">No achievements unlocked yet.</div>}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1903,6 +1997,8 @@ export default function AdminUsersPage() {
 
                     <ProgressionOnboardingPanel snapshot={selectedDetail.progressionOnboarding} />
 
+                    <GamificationProgressionPanel progression={selectedDetail.gamificationProgression} />
+
                     <BillingManagementPanel
                       uid={selectedUserId}
                       userEmail={selectedDetail.profile?.email}
@@ -1943,7 +2039,7 @@ export default function AdminUsersPage() {
                             <DetailRow label="AR Squat Test" value={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Enrolled' : 'Not enrolled'} help="Allows this user to test AR squats while the AR master rollout is enabled." />
                             <DetailRow label="Push-up Test" value={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Enrolled' : 'Not enrolled'} help="Allows this user to test AR push-ups while the AR master rollout is enabled." />
                             <DetailRow label="Smart Return Check-in Test" value={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Enrolled' : 'Not enrolled'} help="Enables the enhanced return check-in and recommendations after a break. Take a Break itself remains available even when this is disabled." />
-                            <DetailRow label="Gamification Concepts Test" value={selectedDetail.rawUserData?.betaFlags?.gamificationConcepts === true || selectedDetail.rawUserData?.featureFlags?.gamificationConceptsEnabled === true ? 'Enrolled' : 'Not enrolled'} help="Marks this account as an internal tester for future onboarding, SageScore, rank, achievement, and verified-challenge concepts. The server policy and build gate still apply." />
+                            <DetailRow label="Gamification Concepts Test" value={selectedDetail.rawUserData?.betaFlags?.gamificationConcepts === true || selectedDetail.rawUserData?.featureFlags?.gamificationConceptsEnabled === true ? 'Enrolled' : 'Not enrolled'} help="Marks this account as an internal progression tester. When the server pilot and concept-enabled mobile build are also active, private SageScore, XP, and achievement state can be calculated. Public rollout remains separate." />
                             <DetailRow
                               label="Sprint Coach"
                               value={selectedDetail.rawUserData?.featureAccess?.sprintCoach?.enabled === true ? `Enrolled (${selectedDetail.rawUserData?.featureAccess?.sprintCoach?.accessLevel || 'tester'})` : 'Not enrolled'}
@@ -1960,7 +2056,7 @@ export default function AdminUsersPage() {
                             <AccessActionButton action="toggle_arkit_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitChallenges === true || selectedDetail.rawUserData?.featureFlags?.arkitChallengesEnabled === true ? 'Remove AR squat access' : 'Grant AR squat access'} help="Toggles per-user AR squat access during controlled rollout. The global AR master switch must also be enabled. If the notification option below is selected, SageSet sends an informational push when possible." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                             <AccessActionButton action="toggle_pushup_beta" label={selectedDetail.rawUserData?.betaFlags?.arkitPushups === true ? 'Remove push-up access' : 'Grant push-up access'} help="Toggles per-user AR push-up access during controlled rollout. The global AR master switch must also be enabled. If the notification option below is selected, SageSet sends an informational push when possible." onAction={handleAccessAction} loadingAction={accessActionLoading} />
                             <AccessActionButton action="toggle_smart_return_beta" label={selectedDetail.rawUserData?.betaFlags?.smartReturn === true ? 'Remove Smart Return access' : 'Grant Smart Return access'} help="Toggles only the Smart Return check-in and recommendations. It does not remove the Take a Break action." onAction={handleAccessAction} loadingAction={accessActionLoading} />
-                            <AccessActionButton action="toggle_gamification_concepts" label={selectedDetail.rawUserData?.betaFlags?.gamificationConcepts === true || selectedDetail.rawUserData?.featureFlags?.gamificationConceptsEnabled === true ? 'Remove gamification tester access' : 'Grant gamification tester access'} help="Marks this user for internal concept validation only. It does not award points, expose production gamification, or bypass the build-time concept gate." onAction={handleAccessAction} loadingAction={accessActionLoading} tone="blue" />
+                            <AccessActionButton action="toggle_gamification_concepts" label={selectedDetail.rawUserData?.betaFlags?.gamificationConcepts === true || selectedDetail.rawUserData?.featureFlags?.gamificationConceptsEnabled === true ? 'Remove gamification tester access' : 'Grant gamification tester access'} help="Enrolls or removes this user from the internal pilot. Enrollment never bypasses the global server policy or build-time concept gate, and it does not enable public access." onAction={handleAccessAction} loadingAction={accessActionLoading} tone="blue" />
                           </div>
                           <div className="mt-4 rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-3">
                             <div className="flex items-center gap-2 text-sm font-semibold text-cyan-100">
