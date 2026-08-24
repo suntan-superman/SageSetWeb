@@ -699,6 +699,7 @@ function GamificationFoundationPanel() {
   };
 
   const controls = [
+    ['globallyEnabled', 'Master pilot switch', 'Master kill switch for all gamification access. Enable it for an internal pilot; disabling it immediately fails closed for every user without changing individual enrollment.'],
     ['conceptsEnabled', 'Validation concepts', 'Enables server access for enrolled internal testers. The mobile build gate is still required.'],
     ['scoreEnabled', 'SageScore', 'Calculates a private candidate SageScore and immutable history for eligible internal testers.'],
     ['xpEnabled', 'XP', 'Awards replay-safe, non-decreasing pilot XP to eligible internal testers.'],
@@ -735,11 +736,23 @@ function GamificationFoundationPanel() {
              Candidate version <span className="font-mono text-violet-200">{foundation?.version || 'candidate-v0'}</span>. For a tester-only pilot, keep Public rollout off and rollout percentage at 0, enable Tester rollout, and enroll accounts individually. Build-time gates remain authoritative.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-             <StatusChip tone={policy.scoreEnabled ? 'amber' : 'gray'}>SageScore {policy.scoreEnabled ? 'pilot on' : 'off'}</StatusChip>
+            <StatusChip tone={policy.globallyEnabled ? 'amber' : 'emerald'}>Master pilot {policy.globallyEnabled ? 'on' : 'off'}</StatusChip>
+            <StatusChip tone={policy.scoreEnabled ? 'amber' : 'gray'}>SageScore {policy.scoreEnabled ? 'pilot on' : 'off'}</StatusChip>
              <StatusChip tone={policy.xpEnabled ? 'amber' : 'gray'}>XP {policy.xpEnabled ? 'pilot on' : 'off'}</StatusChip>
              <StatusChip tone={policy.achievementsEnabled ? 'amber' : 'gray'}>Achievements {policy.achievementsEnabled ? 'pilot on' : 'off'}</StatusChip>
             <StatusChip tone={policy.challengesEnabled ? 'amber' : 'gray'}>Challenges {policy.challengesEnabled ? 'reserved' : 'off'}</StatusChip>
           </div>
+          {!loading && !policy.globallyEnabled && (
+            policy.conceptsEnabled ||
+            policy.scoreEnabled ||
+            policy.xpEnabled ||
+            policy.achievementsEnabled ||
+            policy.allowTesterAccess
+          ) ? (
+            <div className="mt-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              The component switches are configured, but all gamification access is still blocked because the Master pilot switch is off. Enable it only when you are ready for enrolled testers to receive access.
+            </div>
+          ) : null}
           {policy.updatedAt ? <p className="mt-2 text-xs text-gray-500">Last changed {formatDateTime(policy.updatedAt)}</p> : null}
           {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
         </div>
