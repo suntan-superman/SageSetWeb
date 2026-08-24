@@ -913,6 +913,8 @@ function GamificationIntegrityPanel() {
 function ProgressionOnboardingPanel({ snapshot }) {
   const answers = snapshot?.answers && typeof snapshot.answers === 'object' ? snapshot.answers : null;
   const candidate = snapshot?.candidateStartingPoint || {};
+  const assignment = snapshot?.experimentAssignment || null;
+  const hasProgressionSnapshot = !!answers && snapshot?.validationConsent?.granted === true;
 
   return (
     <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-6">
@@ -924,7 +926,9 @@ function ProgressionOnboardingPanel({ snapshot }) {
               label="About progression onboarding snapshots"
               text="Server-owned answers from the gated concept onboarding flow. This is validation data only; it does not change plan generation, SageScore, XP, ranks, or achievements."
             />
-            <StatusChip tone={snapshot ? 'emerald' : 'gray'}>{snapshot ? 'Captured' : 'Not captured'}</StatusChip>
+            <StatusChip tone={hasProgressionSnapshot ? 'emerald' : assignment ? 'blue' : 'gray'}>
+              {hasProgressionSnapshot ? 'Captured' : assignment ? 'Assigned' : 'Not captured'}
+            </StatusChip>
           </div>
           <p className="mt-2 text-sm text-gray-400">
             Review consent, the candidate starting point, and answer patterns for pilot research.
@@ -940,13 +944,23 @@ function ProgressionOnboardingPanel({ snapshot }) {
       ) : (
         <div className="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
           <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
+            {assignment ? (
+              <div className="mb-4 border-b border-gray-700 pb-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Experiment cohort</div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <StatusChip tone={assignment.variant === 'progression' ? 'emerald' : 'blue'}>{assignment.variant || 'Unknown'}</StatusChip>
+                  <span className="text-xs text-gray-500">{assignment.experimentVersion || 'Unversioned'}</span>
+                </div>
+                <div className="mt-2 text-xs text-gray-500">Assignment: {assignment.assignmentMode || 'unknown'}</div>
+              </div>
+            ) : null}
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Candidate starting point</div>
             <div className="mt-3 flex items-end justify-between gap-3">
               <div>
                 <div className="text-3xl font-semibold text-white">{candidate.score ?? '—'}</div>
                 <div className="mt-1 text-sm text-gray-400">SageScore · {candidate.rank || 'Unrated'}</div>
               </div>
-              <StatusChip tone="amber">{candidate.version || 'candidate-v0'}</StatusChip>
+              {candidate.version ? <StatusChip tone="amber">{candidate.version}</StatusChip> : null}
             </div>
             <div className="mt-4 text-xs text-gray-500">
               Consent: <span className="text-emerald-200">{snapshot.validationConsent?.granted === true ? 'Granted' : 'Not granted'}</span>
@@ -959,7 +973,13 @@ function ProgressionOnboardingPanel({ snapshot }) {
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{question.replace(/([A-Z])/g, ' $1')}</div>
                 <div className="mt-1 text-sm font-medium text-gray-100">{String(answer || 'Not answered')}</div>
               </div>
-            )) : <div className="text-sm text-gray-400">No answers were saved.</div>}
+            )) : (
+              <div className="rounded-xl border border-dashed border-gray-700 px-4 py-5 text-sm text-gray-400 sm:col-span-2">
+                {assignment?.variant === 'control'
+                  ? 'Control cohort: the six-question progression answers are intentionally not collected.'
+                  : 'The account has an experiment assignment, but no consented progression answers have been saved yet.'}
+              </div>
+            )}
           </div>
         </div>
       )}
