@@ -704,7 +704,7 @@ function GamificationFoundationPanel() {
     ['scoreEnabled', 'SageScore', 'Calculates a private candidate SageScore and immutable history for eligible internal testers.'],
     ['xpEnabled', 'XP', 'Awards replay-safe, non-decreasing pilot XP to eligible internal testers.'],
     ['achievementsEnabled', 'Achievements', 'Unlocks replay-safe pilot achievements for eligible internal testers.'],
-    ['challengesEnabled', 'Verified challenges', 'Reserves challenge access. No challenge results or rankings are created in this phase.'],
+    ['challengesEnabled', 'Verified challenges', 'Enables the server-validated weekly squat challenge for enrolled testers who also have AR squat access. Attempt limits, rest guidance, and server verification remain enforced.'],
     ['publicEnabled', 'Public rollout', 'Allows the configured rollout percentage to become eligible. Keep off for tester-only validation.'],
     ['allowTesterAccess', 'Tester rollout', 'Allows users with the per-account gamification tester flag to become eligible.'],
   ];
@@ -740,7 +740,7 @@ function GamificationFoundationPanel() {
             <StatusChip tone={policy.scoreEnabled ? 'amber' : 'gray'}>SageScore {policy.scoreEnabled ? 'pilot on' : 'off'}</StatusChip>
              <StatusChip tone={policy.xpEnabled ? 'amber' : 'gray'}>XP {policy.xpEnabled ? 'pilot on' : 'off'}</StatusChip>
              <StatusChip tone={policy.achievementsEnabled ? 'amber' : 'gray'}>Achievements {policy.achievementsEnabled ? 'pilot on' : 'off'}</StatusChip>
-            <StatusChip tone={policy.challengesEnabled ? 'amber' : 'gray'}>Challenges {policy.challengesEnabled ? 'reserved' : 'off'}</StatusChip>
+            <StatusChip tone={policy.challengesEnabled ? 'amber' : 'gray'}>Verified challenge {policy.challengesEnabled ? 'pilot on' : 'off'}</StatusChip>
           </div>
           {!loading && !policy.globallyEnabled && (
             policy.conceptsEnabled ||
@@ -1008,6 +1008,8 @@ function GamificationProgressionPanel({ progression }) {
   const achievements = progression?.recentAchievements || [];
   const personalRecords = progression?.recentPersonalRecords || [];
   const scoreHistory = progression?.recentScoreHistory || [];
+  const verifiedResults = progression?.recentVerifiedChallengeResults || [];
+  const weeklyChallengeProgress = progression?.weeklyChallengeProgress || [];
   const sources = score?.componentSources || {};
 
   return (
@@ -1106,6 +1108,48 @@ function GamificationProgressionPanel({ progression }) {
                   </div>
                 )) : <div className="text-sm text-gray-500">No post-baseline personal records yet.</div>}
               </div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-sm font-semibold text-white">Verified weekly challenge evidence</div>
+                <div className="mt-1 text-xs text-gray-400">Server-issued results only. Raw AR recordings and diagnostics remain separate review evidence.</div>
+              </div>
+              <StatusChip tone={verifiedResults.length ? 'emerald' : 'gray'}>{verifiedResults.length} recent results</StatusChip>
+            </div>
+            {weeklyChallengeProgress.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {weeklyChallengeProgress.map((item) => (
+                  <StatusChip key={item.id} tone={item.completed ? 'emerald' : 'amber'}>
+                    Week {item.weekId || '—'} · best {item.bestVerifiedReps || 0} · {item.completed ? 'complete' : 'open'}
+                  </StatusChip>
+                ))}
+              </div>
+            ) : null}
+            <div className="mt-3 grid gap-2 lg:grid-cols-2">
+              {verifiedResults.length ? verifiedResults.map((result) => (
+                <div key={result.id} className="rounded-lg border border-gray-700 bg-gray-950/35 px-3 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm font-medium text-gray-100">
+                      {result.reps || 0} {result.status === 'verified' ? 'verified' : 'recorded'} squat reps
+                    </div>
+                    <StatusChip tone={result.status === 'verified' ? 'emerald' : result.status === 'disputed' || result.status === 'under_review' ? 'amber' : 'gray'}>
+                      {String(result.status || 'unknown').replaceAll('_', ' ')}
+                    </StatusChip>
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {result.confidence ?? 0}% confidence · {result.creditEligible ? 'credit eligible' : 'no repeat credit'} · {formatDateTime(result.createdAt)}
+                  </div>
+                  {Array.isArray(result.reasons) && result.reasons.length ? (
+                    <div className="mt-2 text-xs text-amber-200">{result.reasons.join(' ')}</div>
+                  ) : null}
+                </div>
+              )) : (
+                <div className="rounded-lg border border-dashed border-gray-700 px-3 py-4 text-sm text-gray-500 lg:col-span-2">
+                  No verified weekly challenge attempts have been submitted by this user.
+                </div>
+              )}
             </div>
           </div>
         </div>
