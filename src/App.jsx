@@ -22,6 +22,7 @@ import AdminReleasesPage from './pages/AdminReleasesPage.jsx';
 import AdminSprintFeedbackPage from './pages/AdminSprintFeedbackPage.jsx';
 import ProductUpdatesPage from './pages/ProductUpdatesPage.jsx';
 import ConceptValidationPage from './pages/ConceptValidationPage.jsx';
+import VerifiedSquatSharePage from './pages/VerifiedSquatSharePage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { initMetaPixel, trackPageView } from './services/metaPixel.js';
 import { flushWorksideEvents, trackWorksideEvent } from './services/worksideAnalytics.js';
@@ -221,6 +222,7 @@ export default function App() {
         <Route path="/verify-email" element={<Layout><VerifyEmailPage /></Layout>} />
         <Route path="/complete-profile" element={<Layout><CompleteProfilePage /></Layout>} />
         <Route path="/verify-sms" element={<Layout><VerifySmsPage /></Layout>} />
+        <Route path="/share/verified-squats/:shareId" element={<Layout><VerifiedSquatSharePage /></Layout>} />
         <Route
           path="/dashboard"
           element={<Layout><ProtectedMemberRoute><DashboardPage section="overview" /></ProtectedMemberRoute></Layout>}

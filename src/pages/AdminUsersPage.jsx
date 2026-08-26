@@ -57,6 +57,11 @@ const formatFileSize = (bytes) => {
   return value > 0 ? `${(value / (1024 * 1024)).toFixed(1)} MB` : 'Unknown size';
 };
 
+const formatPercent = (value) => {
+  const numeric = Number(value || 0);
+  return Number.isFinite(numeric) ? `${Math.round(numeric * 10) / 10}%` : '0%';
+};
+
 const formatMoney = (amount, currency = 'usd') => {
   const value = Number(amount || 0) / 100;
   try {
@@ -689,6 +694,7 @@ function GamificationFoundationPanel() {
 
   const policy = foundation?.policy || {};
   const pilotMetrics = foundation?.verifiedChallengePilotMetrics || null;
+  const sharingMetrics = foundation?.sharingPilotMetrics || null;
   const pilotReviewCount = (pilotMetrics?.underReviewCount || 0) + (pilotMetrics?.disputedCount || 0);
   const updatePolicy = async (field, value) => {
     setUpdating(true);
@@ -709,6 +715,7 @@ function GamificationFoundationPanel() {
     ['xpEnabled', 'XP', 'Awards replay-safe, non-decreasing pilot XP to eligible internal testers.'],
     ['achievementsEnabled', 'Achievements', 'Unlocks replay-safe pilot achievements for eligible internal testers.'],
     ['challengesEnabled', 'Verified challenges', 'Enables the server-validated weekly squat challenge for enrolled testers who also have AR squat access. Attempt limits, rest guidance, and server verification remain enforced.'],
+    ['sharingEnabled', 'Verified sharing', 'Allows enrolled testers to create an opaque public link for a verified squat result. Links reveal only the verified rep count, expire after 90 days, and fail closed when this switch is disabled.'],
     ['publicEnabled', 'Public rollout', 'Allows the configured rollout percentage to become eligible. Keep off for tester-only validation.'],
     ['allowTesterAccess', 'Tester rollout', 'Allows users with the per-account gamification tester flag to become eligible.'],
   ];
@@ -745,12 +752,14 @@ function GamificationFoundationPanel() {
              <StatusChip tone={policy.xpEnabled ? 'amber' : 'gray'}>XP {policy.xpEnabled ? 'pilot on' : 'off'}</StatusChip>
              <StatusChip tone={policy.achievementsEnabled ? 'amber' : 'gray'}>Achievements {policy.achievementsEnabled ? 'pilot on' : 'off'}</StatusChip>
             <StatusChip tone={policy.challengesEnabled ? 'amber' : 'gray'}>Verified challenge {policy.challengesEnabled ? 'pilot on' : 'off'}</StatusChip>
+            <StatusChip tone={policy.sharingEnabled ? 'amber' : 'gray'}>Verified sharing {policy.sharingEnabled ? 'pilot on' : 'off'}</StatusChip>
           </div>
           {!loading && !policy.globallyEnabled && (
             policy.conceptsEnabled ||
             policy.scoreEnabled ||
             policy.xpEnabled ||
             policy.achievementsEnabled ||
+            policy.sharingEnabled ||
             policy.allowTesterAccess
           ) ? (
             <div className="mt-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -811,6 +820,38 @@ function GamificationFoundationPanel() {
           {pilotMetrics?.sampleCapped ? (
             <p className="mt-3 text-xs text-amber-200">The 500-result pilot window is full; use an exported analysis before changing thresholds.</p>
           ) : null}
+        </div>
+        <div className="mt-4 w-full rounded-xl border border-sky-500/25 bg-sky-500/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white">Verified sharing pilot metrics</h3>
+                <HelpTooltip
+                  label="About verified sharing metrics"
+                  text="Counts privacy-safe invitation records created by eligible testers. Opening and completed share actions are measured separately in Workside Analytics."
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-400">No member name, recording, email, or workout history appears in a public share.</p>
+            </div>
+            <StatusChip tone={policy.sharingEnabled ? 'amber' : 'gray'}>{policy.sharingEnabled ? 'Tester sharing enabled' : 'Sharing disabled'}</StatusChip>
+          </div>
+          {sharingMetrics?.available === false ? (
+            <p className="mt-3 text-sm text-amber-200">{sharingMetrics.error || 'Sharing metrics are temporarily unavailable.'}</p>
+          ) : (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ['Created', sharingMetrics?.totalShares ?? 0],
+                ['Active', sharingMetrics?.activeShares ?? 0],
+                ['Revoked', sharingMetrics?.revokedShares ?? 0],
+                ['Unique sharers', sharingMetrics?.uniqueSharers ?? 0],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-lg border border-gray-700 bg-gray-950/35 px-3 py-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
+                  <div className="mt-1 text-xl font-semibold text-white">{value}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="mt-4 grid w-full gap-3 border-t border-violet-500/20 pt-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-gray-700/80 bg-gray-900/30 p-3">
@@ -1088,8 +1129,8 @@ function GamificationIntegrityPanel() {
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     {[
                       ['Automated result', `${Number(evidence.result?.reps || 0)} reps · ${Number(evidence.result?.confidence || 0)}% confidence`],
-                      ['Eligible frames', `${Number(tracking.eligibleFramePercent || 0)}% · minimum ${Number(thresholds.minimumEligibleFramePercent || 0)}%`],
-                      ['Low-confidence frames', `${Number(tracking.lowConfidenceFramePercent || 0)}% · maximum ${Number(thresholds.maximumLowConfidenceFramePercent || 0)}%`],
+                      ['Eligible frames', `${formatPercent(tracking.eligibleFramePercent)} · minimum ${formatPercent(thresholds.minimumEligibleFramePercent)}`],
+                      ['Low-confidence frames', `${formatPercent(tracking.lowConfidenceFramePercent)} · maximum ${formatPercent(thresholds.maximumLowConfidenceFramePercent)}`],
                       ['Tracking signals', `${Number(tracking.trackingLossCount || 0)} losses · ${Number(tracking.countingConcernCount || 0)} concerns`],
                     ].map(([label, value]) => (
                       <div key={label} className="rounded-lg border border-gray-700 bg-gray-950/40 p-3">

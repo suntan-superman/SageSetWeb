@@ -133,6 +133,9 @@ export default function PrivacyPolicyPage() {
               <li>In connection with a business transfer</li>
               <li>With service providers under strict confidentiality agreements</li>
             </ul>
+            <p>
+              If you explicitly choose to share a SageSet Verified challenge result, we create an expiring public invitation link containing only the verified exercise type and rep count. The link does not include your name, email, account identifier, recording, or private workout history. You may revoke the link, and disabling the sharing pilot or deleting your account makes associated invitations unavailable.
+            </p>
           </Section>
 
           <Section title="7. Your Rights">
