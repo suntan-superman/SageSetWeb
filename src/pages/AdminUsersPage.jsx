@@ -686,6 +686,8 @@ function GamificationFoundationPanel() {
   }, []);
 
   const policy = foundation?.policy || {};
+  const pilotMetrics = foundation?.verifiedChallengePilotMetrics || null;
+  const pilotReviewCount = (pilotMetrics?.underReviewCount || 0) + (pilotMetrics?.disputedCount || 0);
   const updatePolicy = async (field, value) => {
     setUpdating(true);
     setError('');
@@ -764,6 +766,50 @@ function GamificationFoundationPanel() {
         >
           Refresh
         </button>
+        <div className="mt-4 w-full rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white">Verified challenge pilot metrics</h3>
+                <HelpTooltip
+                  label="About verified challenge pilot metrics"
+                  text="Bounded server summary of up to 500 submitted verified-challenge results. Use these rates to evaluate recognition and review thresholds before expanding the pilot. These metrics do not change XP or SageScore."
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-400">
+                Recognition outcomes only. A small sample is directional and is not sufficient for public rollout.
+              </p>
+            </div>
+            {pilotMetrics?.lastObservedAt ? (
+              <span className="text-xs text-gray-500">Latest {formatDateTime(pilotMetrics.lastObservedAt)}</span>
+            ) : null}
+          </div>
+          {pilotMetrics?.available === false ? (
+            <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+              {pilotMetrics.error || 'Verified challenge pilot metrics are temporarily unavailable.'}
+            </div>
+          ) : (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              {[
+                ['Results', pilotMetrics?.totalResults ?? 0, `${pilotMetrics?.uniqueTesterCount ?? 0} tester(s)`],
+                ['Verified', pilotMetrics?.verifiedCount ?? 0, `${pilotMetrics?.verificationRate ?? 0}%`],
+                ['Not verified', pilotMetrics?.notVerifiedCount ?? 0, `${pilotMetrics?.notVerifiedRate ?? 0}%`],
+                ['Review / disputed', pilotReviewCount, `${pilotMetrics?.reviewRate ?? 0}%`],
+                ['Avg confidence', pilotMetrics?.averageConfidence ?? '—', pilotMetrics?.averageConfidence == null ? 'No results' : 'percent'],
+                ['XP credits', pilotMetrics?.creditAwardedCount ?? 0, `${pilotMetrics?.completedCount ?? 0} completed`],
+              ].map(([label, value, detail]) => (
+                <div key={label} className="rounded-lg border border-gray-700 bg-gray-950/35 px-3 py-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
+                  <div className="mt-1 text-xl font-semibold text-white">{value}</div>
+                  <div className="mt-1 text-xs text-gray-400">{detail}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {pilotMetrics?.sampleCapped ? (
+            <p className="mt-3 text-xs text-amber-200">The 500-result pilot window is full; use an exported analysis before changing thresholds.</p>
+          ) : null}
+        </div>
         <div className="mt-4 grid w-full gap-3 border-t border-violet-500/20 pt-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-gray-700/80 bg-gray-900/30 p-3">
             <div className="mb-3 flex items-center justify-between gap-2">
@@ -842,8 +888,8 @@ function GamificationIntegrityPanel() {
 
   const resolveReview = async (review, status) => {
     if (!review?.id || workingId) return;
-    const action = status === 'resolved' ? 'resolve' : 'dismiss';
-    if (!window.confirm(`Are you sure you want to ${action} this integrity review?`)) return;
+    const action = status === 'resolved' ? 'confirm the original non-verified result' : 'close this review without credit';
+    if (!window.confirm(`Are you sure you want to ${action}? This action cannot award XP or mark the attempt verified.`)) return;
     setWorkingId(review.id);
     setError('');
     try {
@@ -870,12 +916,12 @@ function GamificationIntegrityPanel() {
             <h2 className="text-lg font-semibold text-white">Gamification Integrity Reviews</h2>
             <HelpTooltip
               label="About integrity reviews"
-              text="Future verified challenges must be reviewed for anomalous volume, confidence, timing, or duplicate attempts before any result can influence XP, achievements, or rankings. These records currently have no effect on user accounts."
+              text="Review anomalous or disputed verified-challenge evidence. Administrators can confirm the original non-verified result or close the review, but cannot manually award XP or label an attempt SageSet Verified. Every decision is audited."
             />
             <StatusChip tone={openCount > 0 ? 'rose' : 'emerald'}>{openCount} open</StatusChip>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-gray-300">
-            Server-only review queue for candidate-v0 integrity signals. No review can award, remove, or publish gamification credit.
+            Server-only review queue for candidate-v0 integrity signals. Resolving a linked dispute returns the result to not verified with an audit trail; no review can award or publish gamification credit.
           </p>
           {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
         </div>
@@ -908,11 +954,20 @@ function GamificationIntegrityPanel() {
                   </div>
                   <p className="mt-2 text-sm text-gray-200">{review.summary || 'No summary provided.'}</p>
                   <p className="mt-2 text-xs text-gray-500">User {review.userId || 'unknown'} · {review.source || 'unknown source'} · {formatDateTime(review.createdAt)}</p>
+                  {review.evidence && typeof review.evidence === 'object' ? (
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-400">
+                      {review.evidence.challengeId ? <StatusChip tone="gray">Challenge {review.evidence.challengeId}</StatusChip> : null}
+                      {review.evidence.resultId ? <StatusChip tone="gray">Result {review.evidence.resultId}</StatusChip> : null}
+                      {review.evidence.attemptId ? <StatusChip tone="gray">Attempt {review.evidence.attemptId}</StatusChip> : null}
+                      {review.evidence.sessionId ? <StatusChip tone="gray">Session {review.evidence.sessionId}</StatusChip> : null}
+                    </div>
+                  ) : null}
+                  {review.resolutionNote ? <p className="mt-2 text-xs text-emerald-200">Resolution: {review.resolutionNote}</p> : null}
                 </div>
                 {review.status === 'open' ? (
                   <div className="flex shrink-0 gap-2">
-                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'resolved')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-60">{workingId === review.id ? 'Working…' : 'Resolve'}</button>
-                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'dismissed')} className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-600 disabled:opacity-60">Dismiss</button>
+                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'resolved')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-60">{workingId === review.id ? 'Working…' : 'Confirm result'}</button>
+                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'dismissed')} className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-600 disabled:opacity-60">Close review</button>
                   </div>
                 ) : null}
               </div>
@@ -1139,7 +1194,13 @@ function GamificationProgressionPanel({ progression }) {
                     </StatusChip>
                   </div>
                   <div className="mt-1 text-xs text-gray-500">
-                    {result.confidence ?? 0}% confidence · {result.creditEligible ? 'credit eligible' : 'no repeat credit'} · {formatDateTime(result.createdAt)}
+                    {result.confidence ?? 0}% confidence · {
+                      result.creditEligible
+                        ? 'XP credit awarded'
+                        : result.status === 'verified' && result.completed
+                          ? 'no repeat credit'
+                          : 'no XP credit'
+                    } · {formatDateTime(result.createdAt)}
                   </div>
                   {Array.isArray(result.reasons) && result.reasons.length ? (
                     <div className="mt-2 text-xs text-amber-200">{result.reasons.join(' ')}</div>
