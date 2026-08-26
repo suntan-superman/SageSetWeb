@@ -23,6 +23,7 @@ import {
   getARChallengeRolloutForAdmin,
   getGamificationFoundationForAdmin,
   listGamificationAnomalyReviewsForAdmin,
+  getGamificationAnomalyReviewEvidenceForAdmin,
   getSprintCoachRolloutForAdmin,
   listUsersForAdmin,
   sendUserExpoNotification,
@@ -30,6 +31,7 @@ import {
   refundStripeChargeForAdmin,
   updateARChallengeRolloutForAdmin,
   updateGamificationFoundationForAdmin,
+  verifyGamificationAnomalyReviewForAdmin,
   resolveGamificationAnomalyReviewForAdmin,
   updateSprintCoachRolloutForAdmin,
   updateSprintCoachUserAccessForAdmin,
@@ -867,6 +869,10 @@ function GamificationIntegrityPanel() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState('');
+  const [evidenceLoadingId, setEvidenceLoadingId] = useState('');
+  const [recordingOpeningId, setRecordingOpeningId] = useState('');
+  const [evidenceByReview, setEvidenceByReview] = useState({});
+  const [drafts, setDrafts] = useState({});
   const [error, setError] = useState('');
 
   const loadReviews = async () => {
@@ -886,9 +892,102 @@ function GamificationIntegrityPanel() {
     loadReviews();
   }, []);
 
+  const updateDraft = (reviewId, patch) => {
+    setDrafts((current) => ({
+      ...current,
+      [reviewId]: { ...(current[reviewId] || {}), ...patch },
+    }));
+  };
+
+  const loadEvidence = async (review) => {
+    if (!review?.id || evidenceLoadingId) return;
+    if (evidenceByReview[review.id]) {
+      setEvidenceByReview((current) => ({ ...current, [review.id]: null }));
+      return;
+    }
+    setEvidenceLoadingId(review.id);
+    setError('');
+    try {
+      const evidence = await getGamificationAnomalyReviewEvidenceForAdmin(review.id);
+      setEvidenceByReview((current) => ({ ...current, [review.id]: evidence }));
+      const firstRecording = evidence?.recordingCandidates?.[0];
+      updateDraft(review.id, {
+        recordingId: firstRecording?.id || '',
+        verifiedReps: Number(evidence?.thresholds?.targetReps || 20),
+        note: drafts[review.id]?.note || '',
+      });
+    } catch (loadError) {
+      setError(loadError?.message || 'Unable to load the linked challenge evidence.');
+    } finally {
+      setEvidenceLoadingId('');
+    }
+  };
+
+  const openRecording = async (recording) => {
+    if (!recording?.storagePath || recordingOpeningId) return;
+    const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
+    setRecordingOpeningId(recording.id);
+    setError('');
+    try {
+      const blob = await loadARSessionReviewBlob(recording.storagePath);
+      const objectUrl = URL.createObjectURL(blob);
+      if (previewWindow) previewWindow.location.href = objectUrl;
+      else window.open(objectUrl, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10 * 60 * 1000);
+    } catch (openError) {
+      previewWindow?.close();
+      setError(openError?.message || 'The challenge recording could not be opened. It may have expired.');
+    } finally {
+      setRecordingOpeningId('');
+    }
+  };
+
+  const manuallyVerify = async (review) => {
+    const draft = drafts[review.id] || {};
+    if (!draft.recordingId || String(draft.note || '').trim().length < 10) {
+      setError('Select and watch a recording, then add a review note of at least 10 characters.');
+      return;
+    }
+    const verifiedReps = Math.floor(Number(draft.verifiedReps));
+    if (!window.confirm(
+      `Verify ${verifiedReps} squat reps after manual video review? This is audited and may grant the one-time weekly challenge credit. The video will still be deleted at its displayed expiration time.`
+    )) return;
+    setWorkingId(review.id);
+    setError('');
+    try {
+      const result = await verifyGamificationAnomalyReviewForAdmin({
+        reviewId: review.id,
+        recordingId: draft.recordingId,
+        verifiedReps,
+        note: String(draft.note).trim(),
+      });
+      setReviews((current) => current.map((item) => item.id === review.id
+        ? { ...item, status: 'resolved', reviewDecision: 'manual_video_verified', resolutionNote: String(draft.note).trim() }
+        : item));
+      setEvidenceByReview((current) => ({
+        ...current,
+        [review.id]: current[review.id] ? {
+          ...current[review.id],
+          manualVerificationAvailable: false,
+          result: {
+            ...current[review.id].result,
+            status: 'verified',
+            verificationMethod: 'manual_video_review',
+            reps: verifiedReps,
+            creditEligible: result?.creditEligible === true,
+          },
+        } : null,
+      }));
+    } catch (verifyError) {
+      setError(verifyError?.message || 'Unable to verify this result after manual review.');
+    } finally {
+      setWorkingId('');
+    }
+  };
+
   const resolveReview = async (review, status) => {
     if (!review?.id || workingId) return;
-    const action = status === 'resolved' ? 'confirm the original non-verified result' : 'close this review without credit';
+    const action = status === 'resolved' ? 'uphold the original non-verified result' : 'close this review as inconclusive without credit';
     if (!window.confirm(`Are you sure you want to ${action}? This action cannot award XP or mark the attempt verified.`)) return;
     setWorkingId(review.id);
     setError('');
@@ -916,12 +1015,12 @@ function GamificationIntegrityPanel() {
             <h2 className="text-lg font-semibold text-white">Gamification Integrity Reviews</h2>
             <HelpTooltip
               label="About integrity reviews"
-              text="Review anomalous or disputed verified-challenge evidence. Administrators can confirm the original non-verified result or close the review, but cannot manually award XP or label an attempt SageSet Verified. Every decision is audited."
+              text="Inspect automated diagnostics and an unexpired tester recording. An administrator may uphold the automated result, close the review as inconclusive, or verify observed reps after video review. Every decision is audited."
             />
             <StatusChip tone={openCount > 0 ? 'rose' : 'emerald'}>{openCount} open</StatusChip>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-gray-300">
-            Server-only review queue for candidate-v0 integrity signals. Resolving a linked dispute returns the result to not verified with an audit trail; no review can award or publish gamification credit.
+            Review disputed verified-challenge results against diagnostics and tester video. Manual verification requires an eligible recording and observed rep count; videos are automatically deleted after 14 days even when a review remains open.
           </p>
           {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
         </div>
@@ -943,7 +1042,14 @@ function GamificationIntegrityPanel() {
         </div>
       ) : (
         <div className="mt-4 space-y-3">
-          {reviews.map((review) => (
+          {reviews.map((review) => {
+            const evidence = evidenceByReview[review.id];
+            const draft = drafts[review.id] || {};
+            const session = evidence?.session;
+            const tracking = session?.tracking || {};
+            const thresholds = evidence?.thresholds || {};
+            const recordings = Array.isArray(evidence?.recordingCandidates) ? evidence.recordingCandidates : [];
+            return (
             <div key={review.id} className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -965,14 +1071,90 @@ function GamificationIntegrityPanel() {
                   {review.resolutionNote ? <p className="mt-2 text-xs text-emerald-200">Resolution: {review.resolutionNote}</p> : null}
                 </div>
                 {review.status === 'open' ? (
-                  <div className="flex shrink-0 gap-2">
-                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'resolved')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-60">{workingId === review.id ? 'Working…' : 'Confirm result'}</button>
-                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'dismissed')} className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-600 disabled:opacity-60">Close review</button>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {review.source === 'verified_weekly_challenge' ? (
+                      <button type="button" disabled={!!workingId || !!evidenceLoadingId} onClick={() => loadEvidence(review)} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-600 disabled:opacity-60">
+                        {evidenceLoadingId === review.id ? 'Loading evidence…' : evidence ? 'Hide evidence' : 'Inspect evidence'}
+                      </button>
+                    ) : null}
+                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'resolved')} className="rounded-lg bg-amber-700 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-60">{workingId === review.id ? 'Working…' : 'Uphold not verified'}</button>
+                    <button type="button" disabled={!!workingId} onClick={() => resolveReview(review, 'dismissed')} className="rounded-lg bg-gray-700 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-600 disabled:opacity-60">Close as inconclusive</button>
                   </div>
                 ) : null}
               </div>
+
+              {evidence ? (
+                <div className="mt-4 space-y-4 border-t border-gray-700 pt-4">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      ['Automated result', `${Number(evidence.result?.reps || 0)} reps · ${Number(evidence.result?.confidence || 0)}% confidence`],
+                      ['Eligible frames', `${Number(tracking.eligibleFramePercent || 0)}% · minimum ${Number(thresholds.minimumEligibleFramePercent || 0)}%`],
+                      ['Low-confidence frames', `${Number(tracking.lowConfidenceFramePercent || 0)}% · maximum ${Number(thresholds.maximumLowConfidenceFramePercent || 0)}%`],
+                      ['Tracking signals', `${Number(tracking.trackingLossCount || 0)} losses · ${Number(tracking.countingConcernCount || 0)} concerns`],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-lg border border-gray-700 bg-gray-950/40 p-3">
+                        <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
+                        <div className="mt-1 text-sm font-medium text-gray-100">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {Array.isArray(evidence.result?.reasons) && evidence.result.reasons.length ? (
+                    <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3 text-sm text-amber-100">
+                      <span className="font-semibold">Automated failure reasons:</span> {evidence.result.reasons.join(' ')}
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-white">Matching tester recordings</h3>
+                      <span className="text-xs text-gray-400">Video only · no microphone · {evidence.recordingRetentionDays || 14}-day retention</span>
+                    </div>
+                    {recordings.length === 0 ? (
+                      <div className="mt-2 rounded-lg border border-dashed border-gray-700 p-4 text-sm text-amber-200">
+                        {evidence.recordingUnavailableReason || 'No unexpired matching recording is available. Manual verification is disabled.'}
+                      </div>
+                    ) : (
+                      <div className="mt-2 grid gap-2 lg:grid-cols-2">
+                        {recordings.map((recording) => (
+                          <label key={recording.id} className={`rounded-lg border p-3 ${draft.recordingId === recording.id ? 'border-emerald-500 bg-emerald-500/5' : 'border-gray-700 bg-gray-950/35'}`}>
+                            <div className="flex items-start gap-3">
+                              <input type="radio" name={`recording-${review.id}`} checked={draft.recordingId === recording.id} onChange={() => updateDraft(review.id, { recordingId: recording.id })} className="mt-1" />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-white">{recording.matchType === 'exact' ? 'Linked challenge video' : 'Legacy time-matched video'}</div>
+                                <div className="mt-1 text-xs text-gray-400">Uploaded {formatDateTime(recording.uploadedAt)} · {formatFileSize(recording.fileSizeBytes)}</div>
+                                <div className="mt-1 text-xs font-medium text-amber-200">Deletes automatically {formatDateTime(recording.expiresAt)}</div>
+                                <button type="button" onClick={() => openRecording(recording)} disabled={!!recordingOpeningId} className="mt-2 rounded-lg border border-blue-500/50 px-3 py-1.5 text-xs font-semibold text-blue-200 hover:bg-blue-500/10 disabled:opacity-60">
+                                  {recordingOpeningId === recording.id ? 'Opening…' : 'Open recording'}
+                                </button>
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {review.status === 'open' && recordings.length > 0 ? (
+                    <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+                      <h3 className="text-sm font-semibold text-white">Verify after manual video review</h3>
+                      <p className="mt-1 text-xs leading-5 text-gray-300">Watch the selected recording in full. Enter only clearly observed full squat reps. Approval is audited, may grant the one-time weekly credit, and never extends video retention.</p>
+                      <div className="mt-3 grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
+                        <label className="text-xs text-gray-300">Observed valid reps
+                          <input type="number" min={thresholds.targetReps || 20} max={thresholds.maximumReps || 30} value={draft.verifiedReps ?? thresholds.targetReps ?? 20} onChange={(event) => updateDraft(review.id, { verifiedReps: event.target.value })} className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white" />
+                        </label>
+                        <label className="text-xs text-gray-300">Review note
+                          <textarea value={draft.note || ''} onChange={(event) => updateDraft(review.id, { note: event.target.value })} rows={2} placeholder="What was visible in the recording?" className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white" />
+                        </label>
+                      </div>
+                      <button type="button" onClick={() => manuallyVerify(review)} disabled={!!workingId || !draft.recordingId || String(draft.note || '').trim().length < 10} className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50">
+                        {workingId === review.id ? 'Verifying…' : 'Verify after manual review'}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
-          ))}
+          )})}
         </div>
       )}
     </section>

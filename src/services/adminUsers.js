@@ -191,6 +191,25 @@ export async function listGamificationAnomalyReviewsForAdmin(limit = 50) {
   );
 }
 
+export async function getGamificationAnomalyReviewEvidenceForAdmin(reviewId) {
+  return await callAdminFunction('getGamificationAnomalyReviewEvidenceForAdmin', { reviewId });
+}
+
+export async function verifyGamificationAnomalyReviewForAdmin({
+  reviewId,
+  recordingId,
+  verifiedReps,
+  note,
+}) {
+  return await callAdminFunction('verifyGamificationAnomalyReviewForAdmin', {
+    reviewId,
+    recordingId,
+    verifiedReps,
+    note,
+    confirmation: 'VERIFY_AFTER_MANUAL_REVIEW',
+  });
+}
+
 export async function resolveGamificationAnomalyReviewForAdmin({ reviewId, status, note = '' }) {
   return await callAdminFunction('resolveGamificationAnomalyReviewForAdmin', {
     reviewId,
