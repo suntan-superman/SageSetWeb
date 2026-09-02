@@ -1425,6 +1425,11 @@ function GamificationProgressionPanel({ progression }) {
                           : 'no XP credit'
                     } · {formatDateTime(result.createdAt)}
                   </div>
+                  {result.shareAggregate ? (
+                    <div className="mt-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-2 text-[11px] text-emerald-100">
+                      Invitation: {result.shareAggregate.uniqueOpens || 0} opened · {result.shareAggregate.accepted || 0} accepted · {result.shareAggregate.completed || 0} matched · {result.shareAggregate.registrations || 0} joined · {result.shareAggregate.secondaryShares || 0} shared onward
+                    </div>
+                  ) : null}
                   {Array.isArray(result.reasons) && result.reasons.length ? (
                     <div className="mt-2 text-xs text-amber-200">{result.reasons.join(' ')}</div>
                   ) : null}

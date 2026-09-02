@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { APP_STORE_URL } from '../config/storeLinks.js';
-import { getVerifiedChallengeShare } from '../services/gamificationSharing.js';
+import { APP_STORE_URL, GOOGLE_PLAY_URL } from '../config/storeLinks.js';
+import { getVerifiedChallengeShare, recordVerifiedChallengeShareOpen } from '../services/gamificationSharing.js';
 import { trackGamificationValidationEvent } from '../services/gamificationValidationAnalytics.js';
 import { flushWorksideEvents } from '../services/worksideAnalytics.js';
 
@@ -9,6 +9,27 @@ export default function VerifiedSquatSharePage() {
   const { shareId = '' } = useParams();
   const [state, setState] = useState({ loading: true, result: null, reason: null });
   const trackedShareId = useRef(null);
+
+  const getVisitorId = () => {
+    const key = 'sageset_verified_invite_visitor_v1';
+    const existing = window.localStorage.getItem(key);
+    if (/^[a-f0-9]{32}$/.test(existing || '')) return existing;
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    const created = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+    window.localStorage.setItem(key, created);
+    return created;
+  };
+
+  const trackAction = async (eventName, properties = {}) => {
+    await trackGamificationValidationEvent(eventName, {
+      shareId,
+      challengeId: state.result?.challengeId,
+      sharingVersion: 'phase5b-v0',
+      ...properties,
+    });
+    await flushWorksideEvents();
+  };
 
   useEffect(() => {
     let active = true;
@@ -22,8 +43,9 @@ export default function VerifiedSquatSharePage() {
             shareId: response.share.shareId,
             challengeId: response.share.challengeId,
             reps: response.share.reps,
-            sharingVersion: 'phase5a-v0',
+            sharingVersion: 'phase5b-v0',
           });
+          await recordVerifiedChallengeShareOpen(response.share.shareId, getVisitorId());
           await flushWorksideEvents();
         }
       } else {
@@ -51,6 +73,9 @@ export default function VerifiedSquatSharePage() {
   }
 
   const reps = Number(state.result.reps) || 0;
+  const appDeepLink = `sageset://verified-squats/${state.result.shareId}?utm_source=verified_share&utm_medium=friend_invite&utm_campaign=verified_squats`;
+  const isAndroid = /Android/i.test(window.navigator.userAgent);
+  const storeUrl = isAndroid ? GOOGLE_PLAY_URL : APP_STORE_URL;
   return (
     <section className="min-h-[76vh] bg-gray-950 px-5 py-12 text-white sm:py-20">
       <div className="mx-auto max-w-2xl overflow-hidden rounded-[2rem] border border-emerald-400/40 bg-gradient-to-b from-emerald-950/80 to-gray-900 shadow-2xl shadow-emerald-950/50">
@@ -64,12 +89,21 @@ export default function VerifiedSquatSharePage() {
             This result was verified from a SageSet AR challenge. The invitation shares only the verified rep count—not the member’s identity, recording, or private workout data.
           </div>
           <a
-            href={APP_STORE_URL}
-            target="_blank"
-            rel="noreferrer"
+            href={appDeepLink}
+            onClick={() => void trackAction('friend_challenge_app_handoff_clicked', { reps })}
             className="mt-8 inline-flex w-full items-center justify-center rounded-2xl bg-emerald-400 px-6 py-4 text-lg font-extrabold text-emerald-950 transition hover:bg-emerald-300"
           >
-            Start Your Free 14-Day Trial
+            Open in SageSet and Accept
+          </a>
+          <p className="mt-4 text-sm text-gray-400">SageSet will keep this invitation ready if you need to sign in first.</p>
+          <a
+            href={storeUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => void trackAction('friend_challenge_install_clicked', { platform: isAndroid ? 'android' : 'ios', reps })}
+            className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-emerald-400/50 px-6 py-3 font-bold text-emerald-200 transition hover:bg-emerald-400/10"
+          >
+            Get SageSet
           </a>
           <a href="/ar-squats" className="mt-5 inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200">Learn how AR Squats work →</a>
         </div>

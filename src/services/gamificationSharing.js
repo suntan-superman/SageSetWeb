@@ -13,3 +13,12 @@ export async function getVerifiedChallengeShare(shareId) {
     };
   }
 }
+
+export async function recordVerifiedChallengeShareOpen(shareId, visitorId) {
+  try {
+    const response = await httpsCallable(functions, 'recordVerifiedChallengeShareOpen')({ shareId, visitorId });
+    return response.data || { success: false };
+  } catch {
+    return { success: false };
+  }
+}

@@ -19,6 +19,7 @@
     "verify:release:local": "node ./scripts/verify-release.js --target local",
     "verify:release:prod": "node ./scripts/verify-release.js --target production",
     "verify:gamification-concepts": "node ./scripts/verify-gamification-concepts.mjs",
+    "verify:gamification-invitations": "node ./scripts/verify-gamification-invitations.mjs",
     "test:puppeteer": "node ./scripts/verify-release.js --only routes",
     "test:meta": "node ./scripts/verify-release.js --only meta"
   },

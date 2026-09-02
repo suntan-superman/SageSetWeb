@@ -20,6 +20,8 @@ export const GAMIFICATION_VALIDATION_EVENTS = Object.freeze([
   'challenge_shared',
   'friend_challenge_created',
   'friend_challenge_opened',
+  'friend_challenge_app_handoff_clicked',
+  'friend_challenge_install_clicked',
   'concept_page_viewed',
   'concept_cta_clicked',
   'concept_preference_submitted',
@@ -55,4 +57,3 @@ export function trackGamificationValidationEvent(eventName, properties = {}, opt
     options
   );
 }
-
