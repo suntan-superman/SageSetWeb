@@ -22,6 +22,7 @@ import {
   loadARSessionReviewBlob,
   getARChallengeRolloutForAdmin,
   getGamificationFoundationForAdmin,
+  getSocialChallengeDashboardForAdmin,
   listGamificationAnomalyReviewsForAdmin,
   getGamificationAnomalyReviewEvidenceForAdmin,
   getSprintCoachRolloutForAdmin,
@@ -31,6 +32,7 @@ import {
   refundStripeChargeForAdmin,
   updateARChallengeRolloutForAdmin,
   updateGamificationFoundationForAdmin,
+  createSageSetWeeklyChallengeForAdmin,
   verifyGamificationAnomalyReviewForAdmin,
   resolveGamificationAnomalyReviewForAdmin,
   updateSprintCoachRolloutForAdmin,
@@ -901,6 +903,104 @@ function GamificationFoundationPanel() {
             );
           })}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function SageSetWeeklyChallengePanel() {
+  const [challenges, setChallenges] = useState([]);
+  const [title, setTitle] = useState('SageSet Weekly Squat Goal');
+  const [exerciseType, setExerciseType] = useState('SQUATS');
+  const [targetReps, setTargetReps] = useState('200');
+  const [loading, setLoading] = useState(true);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadChallenges = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await getSocialChallengeDashboardForAdmin();
+      setChallenges((result?.challenges || []).filter((challenge) => challenge.scope === 'SAGESET'));
+    } catch (loadError) {
+      setError(loadError?.message || 'Unable to load SageSet weekly challenges.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadChallenges();
+  }, []);
+
+  const publish = async () => {
+    const reps = Math.floor(Number(targetReps));
+    if (title.trim().length < 3 || !Number.isFinite(reps) || reps < 1 || reps > 10000) {
+      setError('Enter a title and a rep target between 1 and 10,000.');
+      return;
+    }
+    setPublishing(true);
+    setError('');
+    try {
+      await createSageSetWeeklyChallengeForAdmin({
+        title: title.trim(),
+        exerciseType,
+        targetReps: reps,
+      });
+      await loadChallenges();
+    } catch (publishError) {
+      setError(publishError?.message || 'Unable to publish the weekly challenge.');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  return (
+    <section className="mt-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">SageSet Weekly Competition</h2>
+            <HelpTooltip
+              label="About SageSet weekly competition"
+              text="Publishes a weekly rep goal that every member can join. Public leaderboards use only SageSet names; email addresses and phone numbers are never shown."
+            />
+            <StatusChip tone="emerald">{challenges.length} active</StatusChip>
+          </div>
+          <p className="mt-2 max-w-3xl text-sm text-gray-300">
+            Set the all-member goal here. The mobile app shows progress for the current Monday-to-Sunday UTC challenge window.
+          </p>
+        </div>
+        <button type="button" onClick={loadChallenges} disabled={loading || publishing} className="rounded-lg border border-gray-600 px-3 py-2 text-sm font-medium text-gray-100 hover:bg-gray-700 disabled:opacity-60">
+          Refresh
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-[minmax(220px,1fr)_180px_140px_auto]">
+        <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={60} aria-label="Weekly challenge title" className="rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white" />
+        <select value={exerciseType} onChange={(event) => setExerciseType(event.target.value)} aria-label="Weekly challenge exercise" className="rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white">
+          <option value="SQUATS">Squats</option>
+          <option value="PUSHUPS">Push-ups</option>
+        </select>
+        <input value={targetReps} onChange={(event) => setTargetReps(event.target.value)} type="number" min="1" max="10000" aria-label="Weekly challenge rep target" className="rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white" />
+        <button type="button" onClick={publish} disabled={publishing || loading} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60">
+          {publishing ? 'Publishing…' : 'Publish'}
+        </button>
+      </div>
+      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        {loading ? <p className="text-sm text-gray-400">Loading weekly challenges…</p> : challenges.length === 0 ? (
+          <p className="text-sm text-gray-400">No all-member competition is active for this week.</p>
+        ) : challenges.map((challenge) => (
+          <div key={challenge.id} className="rounded-xl border border-gray-700 bg-gray-900/40 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="font-semibold text-white">{challenge.title}</p><p className="mt-1 text-xs text-gray-400">{challenge.targetReps} {challenge.exerciseType === 'PUSHUPS' ? 'push-ups' : 'squats'} · ends {formatDateTime(challenge.endsAt)}</p></div>
+              <StatusChip tone="emerald">{challenge.participants?.length || 0} joined</StatusChip>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -2100,6 +2200,7 @@ export default function AdminUsersPage() {
 
         <ARChallengeRolloutPanel />
         <GamificationFoundationPanel />
+        <SageSetWeeklyChallengePanel />
         <GamificationIntegrityPanel />
         <SprintCoachRolloutPanel />
 
@@ -2236,6 +2337,9 @@ export default function AdminUsersPage() {
                             <p className="mt-2 text-sm text-gray-400">
                               {selectedDetail.profile?.email || 'No email available'}
                             </p>
+                            {selectedDetail.rawUserData?.sageSetName ? (
+                              <p className="mt-1 text-sm font-semibold text-emerald-300">@{selectedDetail.rawUserData.sageSetName}</p>
+                            ) : null}
                           </div>
                           <button
                             type="button"
@@ -2547,6 +2651,7 @@ export default function AdminUsersPage() {
                         <h3 className="text-lg font-semibold text-white">Account Details</h3>
                         <div className="mt-4">
                           <DetailRow label="UID" value={selectedDetail.profile?.uid} mono />
+                          <DetailRow label="SageSet Name" value={selectedDetail.rawUserData?.sageSetName ? `@${selectedDetail.rawUserData.sageSetName}` : 'Not set'} />
                           <DetailRow label="Provider" value={selectedDetail.profile?.authProvider} />
                           <DetailRow label="Created" value={formatDateTime(selectedDetail.profile?.createdAt)} />
                           <DetailRow label="Last Sign-In" value={formatDateTime(selectedDetail.profile?.lastSignInAt)} />

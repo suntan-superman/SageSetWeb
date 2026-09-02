@@ -179,6 +179,20 @@ export async function updateGamificationFoundationForAdmin(payload) {
   return await callAdminFunction('updateGamificationFoundationForAdmin', payload);
 }
 
+export async function getSocialChallengeDashboardForAdmin() {
+  return await callAdminFunction('getSocialChallengeDashboard', {});
+}
+
+export async function createSageSetWeeklyChallengeForAdmin({ title, exerciseType, targetReps }) {
+  return await callAdminFunction('createSocialChallenge', {
+    scope: 'SAGESET',
+    title,
+    exerciseType,
+    targetReps,
+    description: `${targetReps} ${exerciseType === 'PUSHUPS' ? 'push-ups' : 'squats'} during this week.`,
+  });
+}
+
 export async function getGamificationPilotSpecForAdmin() {
   return await callAdminFunction('getGamificationPilotSpecForAdmin', {});
 }
