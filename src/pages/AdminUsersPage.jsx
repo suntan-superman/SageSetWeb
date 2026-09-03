@@ -22,6 +22,7 @@ import {
   loadARSessionReviewBlob,
   getARChallengeRolloutForAdmin,
   getGamificationFoundationForAdmin,
+  getGamificationPilotSpecForAdmin,
   getSocialChallengeDashboardForAdmin,
   listGamificationAnomalyReviewsForAdmin,
   getGamificationAnomalyReviewEvidenceForAdmin,
@@ -671,6 +672,7 @@ function ARChallengeRolloutPanel() {
 
 function GamificationFoundationPanel() {
   const [foundation, setFoundation] = useState(null);
+  const [pilotSpec, setPilotSpec] = useState(null);
   const [rolloutPercentDraft, setRolloutPercentDraft] = useState('0');
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -680,8 +682,12 @@ function GamificationFoundationPanel() {
     setLoading(true);
     setError('');
     try {
-      const result = await getGamificationFoundationForAdmin();
+      const [result, spec] = await Promise.all([
+        getGamificationFoundationForAdmin(),
+        getGamificationPilotSpecForAdmin(),
+      ]);
       setFoundation(result);
+      setPilotSpec(spec);
       setRolloutPercentDraft(String(result?.policy?.rolloutPercent ?? 0));
     } catch (loadError) {
       setError(loadError?.message || 'Unable to load the gamification foundation policy.');
@@ -756,6 +762,14 @@ function GamificationFoundationPanel() {
             <StatusChip tone={policy.challengesEnabled ? 'amber' : 'gray'}>Verified challenge {policy.challengesEnabled ? 'pilot on' : 'off'}</StatusChip>
             <StatusChip tone={policy.sharingEnabled ? 'amber' : 'gray'}>Verified sharing {policy.sharingEnabled ? 'pilot on' : 'off'}</StatusChip>
           </div>
+          {pilotSpec ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <StatusChip tone="blue">XP {pilotSpec.xpPolicy?.version || 'legacy'}</StatusChip>
+              <StatusChip tone="blue">Quests {pilotSpec.weeklyQuestPolicy?.version || 'legacy'}</StatusChip>
+              <StatusChip tone="blue">Consistency {pilotSpec.consistencyStreakPolicy?.version || 'legacy'}</StatusChip>
+              <StatusChip tone="gray">{pilotSpec.achievementDefinitions?.length || 0} achievement definitions</StatusChip>
+            </div>
+          ) : null}
           {!loading && !policy.globallyEnabled && (
             policy.conceptsEnabled ||
             policy.scoreEnabled ||
@@ -1388,6 +1402,7 @@ function GamificationProgressionPanel({ progression }) {
   const scoreHistory = progression?.recentScoreHistory || [];
   const verifiedResults = progression?.recentVerifiedChallengeResults || [];
   const weeklyChallengeProgress = progression?.weeklyChallengeProgress || [];
+  const weeklyQuests = progression?.weeklyQuests || [];
   const sources = score?.componentSources || {};
 
   return (
@@ -1422,9 +1437,9 @@ function GamificationProgressionPanel({ progression }) {
               <div className="mt-1 text-sm text-violet-200">{score.rank || 'Unranked'} · {score.confidence ?? 0}% confidence</div>
             </div>
             <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">XP</div>
-              <div className="mt-2 text-3xl font-semibold text-white">{xp.total ?? 0}</div>
-              <div className="mt-1 text-sm text-gray-400">Immutable ledger awards</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Level {xp.level ?? 1}</div>
+              <div className="mt-2 text-3xl font-semibold text-white">{xp.total ?? 0} XP</div>
+              <div className="mt-1 text-sm text-gray-400">{xp.xpToNextLevel ?? '—'} XP to Level {xp.nextLevel ?? '—'}</div>
             </div>
             <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Achievements</div>
@@ -1440,6 +1455,41 @@ function GamificationProgressionPanel({ progression }) {
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Personal records</div>
               <div className="mt-2 text-3xl font-semibold text-white">{state.activity?.personalRecords ?? 0}</div>
               <div className="mt-1 text-sm text-gray-400">Recorded, not AR verified</div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-white">Current weekly quests</div>
+                <StatusChip tone={state.weeklyQuest?.state === 'completed' ? 'emerald' : state.weeklyQuest ? 'blue' : 'gray'}>
+                  {state.weeklyQuest?.state || 'not generated'}
+                </StatusChip>
+              </div>
+              <div className="mt-3 space-y-2">
+                {(state.weeklyQuest?.goals || []).map((quest) => (
+                  <div key={quest.id} className="rounded-lg border border-gray-700 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="font-medium text-gray-100">{quest.title}</span>
+                      <span className="text-cyan-200">{quest.current}/{quest.target}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">{quest.category} · {quest.sourceClassification} · {quest.rewardXp} XP</div>
+                  </div>
+                ))}
+                {!state.weeklyQuest?.goals?.length ? <div className="text-sm text-gray-500">No eligible quest set for this week.</div> : null}
+              </div>
+              {weeklyQuests.length > 1 ? <div className="mt-3 text-xs text-gray-500">{weeklyQuests.length} recent immutable weekly definitions available for support.</div> : null}
+            </div>
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
+              <div className="text-sm font-semibold text-white">Consistency and next goal</div>
+              <div className="mt-3 text-sm text-gray-200">{state.activity?.currentScheduledWorkoutStreak ?? 0}-workout consistency streak</div>
+              <div className="mt-1 text-xs text-gray-500">Policy {state.activity?.consistencyPolicyVersion || 'legacy'} · protection used {state.activity?.streakProtection?.protectionUsed ? 'yes' : 'no'}</div>
+              {state.nearTermGoal ? (
+                <div className="mt-3 rounded-lg border border-gray-700 px-3 py-2">
+                  <div className="text-sm font-medium text-gray-100">{state.nearTermGoal.title}</div>
+                  <div className="mt-1 text-xs text-gray-400">{state.nearTermGoal.message}</div>
+                </div>
+              ) : null}
             </div>
           </div>
 

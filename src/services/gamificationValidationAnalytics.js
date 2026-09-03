@@ -26,6 +26,19 @@ export const GAMIFICATION_VALIDATION_EVENTS = Object.freeze([
   'concept_cta_clicked',
   'concept_preference_submitted',
   'concept_waitlist_intent',
+  'gamification_exposed',
+  'progression_viewed',
+  'reward_summary_viewed',
+  'xp_progress_viewed',
+  'near_term_goal_viewed',
+  'weekly_quest_viewed',
+  'weekly_quest_completed',
+  'verified_challenge_completed',
+  'friend_challenge_accepted',
+  'friend_challenge_completed',
+  'competition_joined',
+  'competition_completed',
+  'level_up_viewed',
 ]);
 
 const ALLOWED_EVENTS = new Set(GAMIFICATION_VALIDATION_EVENTS);
