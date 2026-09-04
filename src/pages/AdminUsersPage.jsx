@@ -2060,7 +2060,7 @@ export default function AdminUsersPage() {
       if (failedCount > 0) {
         setActionError(`Sent to ${sentCount} device(s), but ${failedCount} ticket(s) failed.`);
       } else {
-        setActionMessage(`Notification sent to ${tokenCount || sentCount} saved device token(s).`);
+        setActionMessage(`Expo accepted ${sentCount || tokenCount} notification request(s). Final Apple/Google delivery is pending.`);
         setNotificationBody('');
       }
     } catch (error) {
