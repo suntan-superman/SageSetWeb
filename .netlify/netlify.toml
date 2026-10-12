@@ -1,14 +1,11 @@
 plugins = []
 headers = []
 
-[functions]
-
-[functions."*"]
-
 [build]
+edge_functions = "C:\\Users\\sjroy\\Source\\SageSet\\web\\netlify\\edge-functions"
 publish = "C:\\Users\\sjroy\\Source\\SageSet\\web\\dist"
-publishOrigin = "ui"
-commandOrigin = "ui"
+publishOrigin = "config"
+commandOrigin = "config"
 command = "npm run build"
 
 [build.environment]
@@ -24,6 +21,14 @@ command = "npm run build"
 [build.processing.js]
 
 [build.services]
+
+[[edge_functions]]
+function = "verified-share-meta"
+path = "/share/verified-squats/*"
+
+[functions]
+
+[functions."*"]
 
 [[redirects]]
 from = "/*"

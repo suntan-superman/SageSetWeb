@@ -231,3 +231,9 @@ export async function resolveGamificationAnomalyReviewForAdmin({ reviewId, statu
     note,
   });
 }
+
+export const getGamificationRetentionReportForAdmin = (payload) => callAdminFunction('getGamificationRetentionReportForAdmin', payload);
+export const getSocialModerationForAdmin = () => callAdminFunction('getSocialModerationForAdmin', {});
+export const moderateSocialContentForAdmin = (payload) => callAdminFunction('moderateSocialContentForAdmin', payload);
+export const getOfficialCompetitionScheduleForAdmin = () => callAdminFunction('getOfficialCompetitionScheduleForAdmin', {});
+export const updateOfficialCompetitionScheduleForAdmin = (payload) => callAdminFunction('updateOfficialCompetitionScheduleForAdmin', payload);

@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import AdminHeader from '../components/AdminHeader.jsx';
+import GamificationRoadmapPanels from '../components/GamificationRoadmapPanels.jsx';
 import {
   getUserAdminDetail,
   getAdminBillingDetail,
@@ -926,7 +927,7 @@ function SageSetWeeklyChallengePanel() {
   const [challenges, setChallenges] = useState([]);
   const [title, setTitle] = useState('SageSet Weekly Squat Goal');
   const [exerciseType, setExerciseType] = useState('SQUATS');
-  const [targetReps, setTargetReps] = useState('200');
+  const [targetReps, setTargetReps] = useState('25');
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
@@ -950,8 +951,8 @@ function SageSetWeeklyChallengePanel() {
 
   const publish = async () => {
     const reps = Math.floor(Number(targetReps));
-    if (title.trim().length < 3 || !Number.isFinite(reps) || reps < 1 || reps > 10000) {
-      setError('Enter a title and a rep target between 1 and 10,000.');
+    if (title.trim().length < 3 || !Number.isFinite(reps) || reps < 5 || reps > 100) {
+      setError('Enter a title and a verified squat target between 5 and 100.');
       return;
     }
     setPublishing(true);
@@ -995,9 +996,9 @@ function SageSetWeeklyChallengePanel() {
         <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={60} aria-label="Weekly challenge title" className="rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white" />
         <select value={exerciseType} onChange={(event) => setExerciseType(event.target.value)} aria-label="Weekly challenge exercise" className="rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white">
           <option value="SQUATS">Squats</option>
-          <option value="PUSHUPS">Push-ups</option>
+          <option value="PUSHUPS" disabled>Push-ups — verification unavailable</option>
         </select>
-        <input value={targetReps} onChange={(event) => setTargetReps(event.target.value)} type="number" min="1" max="10000" aria-label="Weekly challenge rep target" className="rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white" />
+        <input value={targetReps} onChange={(event) => setTargetReps(event.target.value)} type="number" min="5" max="100" aria-label="Weekly challenge rep target" className="rounded-lg border border-gray-600 bg-gray-950 px-3 py-2 text-sm text-white" />
         <button type="button" onClick={publish} disabled={publishing || loading} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60">
           {publishing ? 'Publishing…' : 'Publish'}
         </button>
@@ -1430,6 +1431,10 @@ function GamificationProgressionPanel({ progression }) {
         </div>
       ) : (
         <div className="mt-4 space-y-4">
+          {progression?.programRecords?.length > 0 && <div className="rounded-xl border border-gray-700 p-4">
+            <h4 className="font-semibold text-white">Permanent program records</h4>
+            {progression.programRecords.map((record) => <p key={record.id} className="mt-2 text-sm text-gray-300">{record.title} · {record.completedWorkouts} workouts · {record.adherencePercent}% adherence · {record.programXpEarned} awarded program XP · {formatDateTime(record.completedAt)}</p>)}
+          </div>}
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-xl border border-gray-700 bg-gray-900/35 p-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Candidate SageScore</div>
@@ -2252,6 +2257,7 @@ export default function AdminUsersPage() {
         <GamificationFoundationPanel />
         <SageSetWeeklyChallengePanel />
         <GamificationIntegrityPanel />
+        <GamificationRoadmapPanels />
         <SprintCoachRolloutPanel />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
