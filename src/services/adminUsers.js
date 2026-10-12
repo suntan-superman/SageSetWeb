@@ -61,6 +61,9 @@ export async function getUserAdminDetail(uid) {
   return await callAdminFunction('getUserAdminDetail', { uid });
 }
 
+export const getWorkoutFlexibilityForAdmin = () => callAdminFunction('getWorkoutFlexibilityForAdmin', {});
+export const updateWorkoutFlexibilityForAdmin = (updates) => callAdminFunction('updateWorkoutFlexibilityForAdmin', updates);
+
 export async function getAdminBillingDetail(uid) {
   return await callAdminFunction('getAdminBillingDetail', { uid });
 }

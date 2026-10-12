@@ -20,6 +20,7 @@
     "verify:release:prod": "node ./scripts/verify-release.js --target production",
     "verify:gamification-concepts": "node ./scripts/verify-gamification-concepts.mjs",
     "verify:gamification-invitations": "node ./scripts/verify-gamification-invitations.mjs",
+    "verify:workout-flexibility-panel": "node ./scripts/verify-workout-flexibility-panel.mjs",
     "test:puppeteer": "node ./scripts/verify-release.js --only routes",
     "test:meta": "node ./scripts/verify-release.js --only meta"
   },

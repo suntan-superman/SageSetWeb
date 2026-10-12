@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import AdminHeader from '../components/AdminHeader.jsx';
 import GamificationRoadmapPanels from '../components/GamificationRoadmapPanels.jsx';
+import WorkoutFlexibilityPanel from '../components/WorkoutFlexibilityPanel.jsx';
 import {
   getUserAdminDetail,
   getAdminBillingDetail,
@@ -1488,7 +1489,8 @@ function GamificationProgressionPanel({ progression }) {
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
               <div className="text-sm font-semibold text-white">Consistency and next goal</div>
               <div className="mt-3 text-sm text-gray-200">{state.activity?.currentScheduledWorkoutStreak ?? 0}-workout consistency streak</div>
-              <div className="mt-1 text-xs text-gray-500">Policy {state.activity?.consistencyPolicyVersion || 'legacy'} · protection used {state.activity?.streakProtection?.protectionUsed ? 'yes' : 'no'}</div>
+              <div className="mt-1 text-xs text-gray-500">Policy {state.activity?.consistencyPolicyVersion || 'legacy'} · historical protection used {state.activity?.streakProtection?.protectionUsed ? 'yes' : 'no'}</div>
+              <div className="mt-1 text-xs text-gray-500">Active protected dates: {state.activity?.streakProtection?.activeProtectedDates?.join(', ') || 'none'}. Scheduled rest preserves the streak without increasing it.</div>
               {state.nearTermGoal ? (
                 <div className="mt-3 rounded-lg border border-gray-700 px-3 py-2">
                   <div className="text-sm font-medium text-gray-100">{state.nearTermGoal.title}</div>
@@ -2258,6 +2260,7 @@ export default function AdminUsersPage() {
         <SageSetWeeklyChallengePanel />
         <GamificationIntegrityPanel />
         <GamificationRoadmapPanels />
+        <WorkoutFlexibilityPanel />
         <SprintCoachRolloutPanel />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
