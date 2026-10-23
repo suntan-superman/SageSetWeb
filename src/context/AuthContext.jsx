@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   updateProfile,
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { getAdvertisingAttributionSnapshot } from '../services/advertisingAttribution.js';
@@ -34,13 +34,6 @@ async function linkAdvertisingAttribution(lifecycle = 'session') {
   return result.data;
 }
 
-function buildTrialWindow() {
-  const trialStartedAt = new Date();
-  const trialEndsAt = new Date(trialStartedAt);
-  trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + 14);
-  return { trialStartedAt, trialEndsAt };
-}
-
 function splitDisplayName(displayName = '') {
   const parts = displayName.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return { firstName: null, lastName: null };
@@ -63,7 +56,6 @@ function buildUserProfile({
   smsConsentSource = null,
   authProvider = 'password',
 }) {
-  const { trialStartedAt, trialEndsAt } = buildTrialWindow();
   const cleanedPhone = phone?.trim() || null;
   const providerIds = user.providerData.map((provider) => provider.providerId);
   const appleProvider = user.providerData.find((provider) => provider.providerId === 'apple.com');
@@ -88,49 +80,12 @@ function buildUserProfile({
       smsConsentSource,
       smsVerificationStatus: smsOptIn === true ? 'pending' : 'not_collected',
     },
-    trial: {
-      startedAt: Timestamp.fromDate(trialStartedAt),
-      endsAt: Timestamp.fromDate(trialEndsAt),
-      status: 'active',
-      source: 'account_creation',
-      dayNumber: 1,
-    },
-    subscription: {
-      provider: 'stripe',
-      status: 'none',
-      source: null,
-      plan: 'free',
-      planId: null,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      currentPeriodStart: null,
-      currentPeriodEnd: null,
-      cancelAtPeriodEnd: false,
-      lastVerifiedAt: null,
-    },
-    entitlements: {
-      premium: true,
-      nutritionAnalysis: true,
-      aiWorkoutGeneration: true,
-      progressTracking: true,
-      advancedAnalytics: false,
-      arkitChallenges: false,
-    },
     notificationPreferences: {
       email: true,
       push: true,
       marketing: false,
       sms: smsOptIn === true,
       trialReminders: true,
-    },
-    metrics: {
-      workoutsCompleted: 0,
-      mealsLogged: 0,
-      mealAnalysesUsed: 0,
-      streakDays: 0,
-      weightEntries: 0,
-      lastWorkoutAt: null,
-      lastMealLoggedAt: null,
     },
     featureFlags: {
       arkitChallengesEnabled: false,
@@ -225,6 +180,9 @@ export function AuthProvider({ children }) {
         authProvider: 'email',
       })
     );
+
+    const initializeTrial = httpsCallable(functions, 'initializeUserTrial');
+    await initializeTrial({});
 
     await linkAdvertisingAttribution('registration');
 

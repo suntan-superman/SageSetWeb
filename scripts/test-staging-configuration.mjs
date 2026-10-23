@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import { resolveRuntimeEnvironment } from '../src/config/runtimeEnvironment.js';
 
@@ -45,4 +46,12 @@ test('production branch retains legacy behavior until separately migrated', () =
   assert.equal(result.name, 'production');
   assert.equal(result.isStaging, false);
   assert.equal(result.notificationsEnabled, true);
+});
+
+test('browser registration delegates trial authority to the staging Function', () => {
+  const source = fs.readFileSync(new URL('../src/context/AuthContext.jsx', import.meta.url), 'utf8');
+  const registration = source.slice(source.indexOf('const signup = async'), source.indexOf('const signInWithApple'));
+  assert.doesNotMatch(registration, /\b(?:trial|subscription|entitlements|metrics)\s*:/);
+  assert.match(registration, /httpsCallable\(functions, 'initializeUserTrial'\)/);
+  assert.ok(registration.indexOf("initializeUserTrial") < registration.indexOf("linkAdvertisingAttribution('registration')"));
 });
