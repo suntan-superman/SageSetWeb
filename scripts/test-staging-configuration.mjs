@@ -13,6 +13,7 @@ const valid = {
   VITE_WORKSIDE_ANALYTICS_URL: 'https://workside-analytics-staging.web.app',
   VITE_WORKSIDE_ANALYTICS_ENVIRONMENT: 'staging', VITE_OUTBOUND_NOTIFICATIONS_ENABLED: 'false',
   VITE_META_PIXEL_ID: '', VITE_META_CAPI_ENDPOINT: '', VITE_REDDIT_TRACKING_ENABLED: 'false',
+  VITE_REDDIT_PIXEL_ID: '', VITE_REDDIT_TEST_MODE: 'false',
   VITE_STRIPE_CHECKOUT_HOST: 'checkout.stripe.com',
 };
 
@@ -21,6 +22,7 @@ test('valid staging configuration is explicit and provider delivery is disabled'
   assert.equal(result.firebase.projectId, 'sageset-stage-123');
   assert.equal(result.notificationsEnabled, false);
   assert.deepEqual(result.meta, {pixelId: '', capiEndpoint: '', testEventCode: ''});
+  assert.deepEqual(result.reddit, {enabled: false, pixelId: '', testMode: false});
 });
 
 test('staging never inherits production Firebase or origin values', () => {
@@ -35,10 +37,18 @@ test('staging rejects missing values and environment mismatch', () => {
   assert.throws(() => resolveRuntimeEnvironment({...valid}, 'https://unexpected.example.net'));
 });
 
-test('staging rejects notifications and advertising destinations', () => {
+test('staging rejects notifications and unguarded advertising destinations', () => {
   assert.throws(() => resolveRuntimeEnvironment({...valid, VITE_OUTBOUND_NOTIFICATIONS_ENABLED: 'true'}));
   assert.throws(() => resolveRuntimeEnvironment({...valid, VITE_META_CAPI_ENDPOINT: 'https://example.test/meta'}));
   assert.throws(() => resolveRuntimeEnvironment({...valid, VITE_REDDIT_TRACKING_ENABLED: 'true'}));
+  assert.throws(() => resolveRuntimeEnvironment({
+    ...valid, VITE_REDDIT_TRACKING_ENABLED: 'true', VITE_REDDIT_PIXEL_ID: 'stage_pixel_123',
+  }));
+  const testMode = resolveRuntimeEnvironment({
+    ...valid, VITE_REDDIT_TRACKING_ENABLED: 'true', VITE_REDDIT_PIXEL_ID: 'stage_pixel_123',
+    VITE_REDDIT_TEST_MODE: 'true',
+  });
+  assert.deepEqual(testMode.reddit, {enabled: true, pixelId: 'stage_pixel_123', testMode: true});
 });
 
 test('production branch retains legacy behavior until separately migrated', () => {
@@ -46,6 +56,7 @@ test('production branch retains legacy behavior until separately migrated', () =
   assert.equal(result.name, 'production');
   assert.equal(result.isStaging, false);
   assert.equal(result.notificationsEnabled, true);
+  assert.deepEqual(result.reddit, {enabled: false, pixelId: '', testMode: false});
 });
 
 test('browser registration delegates trial authority to the staging Function', () => {

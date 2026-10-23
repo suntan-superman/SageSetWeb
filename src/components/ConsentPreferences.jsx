@@ -47,7 +47,7 @@ export default function ConsentPreferences() {
             </label>
             <label className="flex items-start gap-3">
               <input className="mt-1 h-4 w-4" type="checkbox" checked={advertising && !preference.gpc} disabled={preference.gpc} onChange={(event) => setAdvertising(event.target.checked)} />
-              <span><strong>Advertising</strong><span className="block text-sm text-gray-600">Allow campaign measurement for Meta and any future advertising provider.</span></span>
+              <span><strong>Advertising</strong><span className="block text-sm text-gray-600">Allow consent-gated campaign measurement for Meta and Reddit when those integrations are separately enabled.</span></span>
             </label>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">

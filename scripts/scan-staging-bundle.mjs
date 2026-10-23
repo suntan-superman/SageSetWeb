@@ -8,6 +8,7 @@ const forbidden = [
   ['production App Check key', /6LdFOFYtAAAAAAcaljNPZC_aiN7aY22xpTm_8dg4/i],
   ['production Meta Pixel', /2504506900022362/],
   ['live Stripe secret', /sk_live_[A-Za-z0-9]+/],
+  ['Reddit CAPI credential', /(?:Bearer\s+|reddit[_-]capi[_-](?:token|secret)["'=:\s]+)[A-Za-z0-9._~-]{16,}/i],
   ['private key', /-----BEGIN (?:RSA )?PRIVATE KEY-----/],
 ];
 

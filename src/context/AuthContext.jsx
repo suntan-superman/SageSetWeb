@@ -14,6 +14,7 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { getAdvertisingAttributionSnapshot } from '../services/advertisingAttribution.js';
 import { runtimeEnvironment } from '../config/runtimeEnvironment.js';
+import { trackRedditSignUp } from '../services/redditPixel.js';
 
 const AuthContext = createContext(null);
 
@@ -184,7 +185,8 @@ export function AuthProvider({ children }) {
     const initializeTrial = httpsCallable(functions, 'initializeUserTrial');
     await initializeTrial({});
 
-    await linkAdvertisingAttribution('registration');
+    const attributionResult = await linkAdvertisingAttribution('registration');
+    trackRedditSignUp({ conversionId: attributionResult?.registrationConversionId });
 
     if (runtimeEnvironment.notificationsEnabled) await sendSageSetVerificationEmail();
 
@@ -227,7 +229,8 @@ export function AuthProvider({ children }) {
           authProvider: 'apple',
         })
       );
-      await linkAdvertisingAttribution('registration');
+      const attributionResult = await linkAdvertisingAttribution('registration');
+      trackRedditSignUp({ conversionId: attributionResult?.registrationConversionId });
     } else {
       await setDoc(
         profileRef,

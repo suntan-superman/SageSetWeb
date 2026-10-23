@@ -15,6 +15,24 @@ const parseUrl = (value, name) => {
 };
 
 const isFalse = (value) => String(value || '').trim().toLowerCase() === 'false';
+const isTrue = (value) => String(value || '').trim().toLowerCase() === 'true';
+
+function redditConfiguration(env, { staging = false } = {}) {
+  const trackingEnabled = isTrue(env.VITE_REDDIT_TRACKING_ENABLED);
+  const pixelId = String(env.VITE_REDDIT_PIXEL_ID || '').trim();
+  const testMode = isTrue(env.VITE_REDDIT_TEST_MODE);
+  if (trackingEnabled && !/^[A-Za-z0-9_-]{5,100}$/.test(pixelId)) {
+    throw new Error('[SageSet configuration] Reddit tracking requires an explicit valid Pixel ID.');
+  }
+  if (staging && trackingEnabled && !testMode) {
+    throw new Error('[SageSet configuration] Staging Reddit tracking requires explicit test mode.');
+  }
+  return Object.freeze({
+    enabled: trackingEnabled,
+    pixelId: trackingEnabled ? pixelId : '',
+    testMode: staging && trackingEnabled && testMode,
+  });
+}
 
 export function resolveRuntimeEnvironment(env = {}, browserOrigin = '') {
   const productionProjectId = String(env.VITE_LEGACY_FIREBASE_PROJECT_ID || '').trim();
@@ -40,6 +58,7 @@ export function resolveRuntimeEnvironment(env = {}, browserOrigin = '') {
       appCheckSiteKey: null,
       workside: null,
       meta: null,
+      reddit: redditConfiguration(env),
     };
   }
 
@@ -77,9 +96,7 @@ export function resolveRuntimeEnvironment(env = {}, browserOrigin = '') {
   if (String(env.VITE_META_PIXEL_ID || '').trim() || String(env.VITE_META_CAPI_ENDPOINT || '').trim()) {
     throw new Error('[SageSet configuration] Meta delivery must be unconfigured in staging.');
   }
-  if (!isFalse(required(env, 'VITE_REDDIT_TRACKING_ENABLED'))) {
-    throw new Error('[SageSet configuration] Reddit tracking must be disabled in staging.');
-  }
+  const reddit = redditConfiguration(env, { staging: true });
 
   return {
     name,
@@ -98,6 +115,7 @@ export function resolveRuntimeEnvironment(env = {}, browserOrigin = '') {
     appCheckSiteKey: required(env, 'VITE_FIREBASE_APPCHECK_SITE_KEY'),
     workside: {endpoint: worksideUrl.origin, environment: 'staging'},
     meta: {pixelId: '', capiEndpoint: '', testEventCode: ''},
+    reddit,
   };
 }
 
