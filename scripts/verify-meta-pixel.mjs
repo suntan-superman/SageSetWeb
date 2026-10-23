@@ -28,7 +28,7 @@ const scenarios = [
   },
   {
     path: '/billing/success',
-    expected: ['PageView', 'StartTrial', 'Subscribe'],
+    expected: ['PageView', 'StartTrial'],
   },
   {
     path: '/billing/cancel',
@@ -247,6 +247,14 @@ async function main() {
     });
 
     const page = await browser.newPage();
+    await page.evaluateOnNewDocument(() => {
+      if (!localStorage.getItem('sageset.consent.v2')) {
+        localStorage.setItem('sageset.consent.v2', JSON.stringify({
+          analytics: 'granted', advertising: 'granted', gpc: false,
+          version: 'pixel-verification', capturedAt: new Date().toISOString(),
+        }));
+      }
+    });
     if (LIVE_MODE) {
       await page.evaluateOnNewDocument(() => {
         Object.defineProperty(navigator, 'webdriver', {
@@ -265,7 +273,10 @@ async function main() {
     }
 
     await page.evaluate(() => {
-      localStorage.setItem('sageset.marketingConsent.v1', 'denied');
+      localStorage.setItem('sageset.consent.v2', JSON.stringify({
+        analytics: 'granted', advertising: 'denied', gpc: false,
+        version: 'pixel-verification', capturedAt: new Date().toISOString(),
+      }));
     });
     await page.goto(`${BASE_URL}/signup?consent_verification=denied`, {
       waitUntil: 'networkidle2',
@@ -277,7 +288,7 @@ async function main() {
       throw new Error('Meta events fired after the shared marketing-consent decision was denied.');
     }
     await page.evaluate(() => {
-      localStorage.removeItem('sageset.marketingConsent.v1');
+      localStorage.removeItem('sageset.consent.v2');
     });
 
     console.log(`\nMeta Pixel Puppeteer verification passed${LIVE_MODE ? ' in live mode' : ''}.\n`);

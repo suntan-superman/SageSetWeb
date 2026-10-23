@@ -1,16 +1,21 @@
 import { getToken as getAppCheckToken } from 'firebase/app-check';
 import { appCheck, auth } from '../config/firebase.js';
 import { trackWorksideEvent } from './worksideAnalytics.js';
+import {
+  isAdvertisingAllowed,
+  readConsentPreferences,
+  saveConsentPreferences,
+} from './consentPreferences.js';
+import { runtimeEnvironment } from '../config/runtimeEnvironment.js';
 
-const PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || '';
-const CAPI_ENDPOINT = (
+const PIXEL_ID = runtimeEnvironment.isStaging ? '' : (import.meta.env.VITE_META_PIXEL_ID || '');
+const CAPI_ENDPOINT = (runtimeEnvironment.isStaging ? '' : (
   import.meta.env.VITE_META_CAPI_ENDPOINT ||
-  'https://us-central1-greencheck-d3d88.cloudfunctions.net/sendMetaConversion'
-).replace(/\/$/, '');
+  import.meta.env.VITE_LEGACY_META_CAPI_ENDPOINT
+)).replace(/\/$/, '');
 const PIXEL_DEBUG_KEY = '__SAGESET_META_PIXEL_EVENTS__';
-const CONSENT_STORAGE_KEY = 'sageset.marketingConsent.v1';
 const META_REQUEST_TIMEOUT_MS = 4_000;
-const CONFIGURED_TEST_EVENT_CODE = import.meta.env.VITE_META_TEST_EVENT_CODE || '';
+const CONFIGURED_TEST_EVENT_CODE = runtimeEnvironment.isStaging ? '' : (import.meta.env.VITE_META_TEST_EVENT_CODE || '');
 
 let initialized = false;
 let lastPageViewPath = '';
@@ -23,30 +28,15 @@ export function isMetaPixelEnabled() {
 export function getMetaMarketingConsent(consent) {
   if (typeof consent === 'function') return Boolean(consent());
   if (typeof consent === 'boolean') return consent;
-  if (typeof window === 'undefined') return false;
-  if (window.navigator?.globalPrivacyControl === true) return false;
-  let stored = null;
-  try {
-    stored = window.localStorage?.getItem(CONSENT_STORAGE_KEY);
-  } catch {
-    stored = null;
-  }
-  if (stored === 'denied') return false;
-  if (stored === 'granted') return true;
-
-  // Preserve the site's existing configured-Pixel behavior until a consent
-  // banner is introduced. Explicit opt-out and GPC always win, and the exact
-  // same decision gates both the Pixel and its CAPI copy.
-  return true;
+  return isAdvertisingAllowed(readConsentPreferences());
 }
 
 export function setMetaMarketingConsent(granted) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage?.setItem(CONSENT_STORAGE_KEY, granted ? 'granted' : 'denied');
-  } catch {
-    // Storage may be unavailable in hardened/private browsing contexts.
-  }
+  const current = readConsentPreferences();
+  saveConsentPreferences({
+    analytics: current.analytics,
+    advertising: granted ? 'granted' : 'denied',
+  });
 }
 
 export function createMetaEventId(prefix = 'evt') {

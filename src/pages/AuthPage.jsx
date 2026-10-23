@@ -76,7 +76,6 @@ export default function AuthPage({ mode = 'login' }) {
         trackEvent('Lead', { content_name: 'web_signup_submit', content_category: 'signup' });
         await signup(form);
         trackEvent('CompleteRegistration', { method: 'email' });
-        await trackWorksideEvent('signup_completed', { method: 'email' });
         await flushWorksideEvents();
         navigate('/verify-email');
         return;
@@ -116,7 +115,6 @@ export default function AuthPage({ mode = 'login' }) {
     try {
       const result = await signInWithApple();
       trackEvent(isSignup ? 'CompleteRegistration' : 'Login', { method: 'apple' });
-      if (isSignup && result?.isNewUser) await trackWorksideEvent('signup_completed', { method: 'apple' });
       if (!isSignup) await trackWorksideEvent('login_completed', { method: 'apple' });
       await flushWorksideEvents();
       navigate('/dashboard');

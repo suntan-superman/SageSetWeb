@@ -2,27 +2,33 @@
 // Workside-Analytics-Dashboard/packages/analytics-client.
 import { getToken as getAppCheckToken } from 'firebase/app-check';
 import { appCheck, auth } from '../config/firebase.js';
+import { getAdvertisingAttributionSnapshot } from './advertisingAttribution.js';
+import { isAnalyticsAllowed, readConsentPreferences } from './consentPreferences.js';
+import { runtimeEnvironment } from '../config/runtimeEnvironment.js';
 
-const ENDPOINT = (import.meta.env.VITE_WORKSIDE_ANALYTICS_URL || 'https://workside-analytics-staging.web.app').replace(/\/$/, '');
-const ENVIRONMENT = import.meta.env.VITE_WORKSIDE_ANALYTICS_ENVIRONMENT || 'staging';
-const VISITOR_KEY = 'sageset.analytics.visitor.v1';
+const ENDPOINT = (runtimeEnvironment.isStaging ?
+  runtimeEnvironment.workside.endpoint :
+  (import.meta.env.VITE_WORKSIDE_ANALYTICS_URL || 'https://workside-analytics-staging.web.app')).replace(/\/$/, '');
+const ENVIRONMENT = runtimeEnvironment.isStaging ?
+  runtimeEnvironment.workside.environment :
+  (import.meta.env.VITE_WORKSIDE_ANALYTICS_ENVIRONMENT || 'staging');
 const SESSION_KEY = 'sageset.analytics.session.v1';
-const ATTRIBUTION_KEY = 'sageset.analytics.attribution.v1';
 const QUEUE_KEY = 'sageset.analytics.queue.v1';
 const MAX_QUEUE_SIZE = 100;
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
+const browserLocation = globalThis.window?.location;
 const IS_LOCAL_DEVELOPMENT =
-  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  browserLocation?.hostname === 'localhost' || browserLocation?.hostname === '127.0.0.1';
 const IS_META_RELEASE_CHECK =
-  new URLSearchParams(window.location.search).get('release_check') === 'meta';
+  new URLSearchParams(browserLocation?.search || '').get('release_check') === 'meta';
 
 const createId = () => crypto.randomUUID();
 const safeParse = (value, fallback) => {
   try { return JSON.parse(value ?? '') ?? fallback; }
   catch { return fallback; }
 };
-const safePage = () => `${window.location.origin}${window.location.pathname}`;
+const safePage = () => browserLocation ? `${browserLocation.origin}${browserLocation.pathname}` : '';
 
 function getStableId(storage, key) {
   let value = storage.getItem(key);
@@ -33,32 +39,9 @@ function getStableId(storage, key) {
   return value;
 }
 
-function captureAttribution() {
-  const params = new URLSearchParams(window.location.search);
-  const incoming = {
-    utmSource: params.get('utm_source'),
-    utmMedium: params.get('utm_medium'),
-    utmCampaign: params.get('utm_campaign'),
-    utmContent: params.get('utm_content'),
-    utmTerm: params.get('utm_term'),
-    metaClickId: params.get('fbclid'),
-    referrer: document.referrer || null,
-    landingPage: safePage(),
-  };
-  const compact = Object.fromEntries(Object.entries(incoming).filter(([, value]) => value));
-  const hasCampaign = Object.keys(compact).some((key) => key.startsWith('utm') || key === 'metaClickId');
-  const existing = safeParse(localStorage.getItem(ATTRIBUTION_KEY), {});
-  const next = {
-    firstTouch: existing.firstTouch || (hasCampaign ? compact : null),
-    latestTouch: hasCampaign ? compact : existing.latestTouch || null,
-  };
-  localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(next));
-  return next;
-}
-
-const visitorId = getStableId(localStorage, VISITOR_KEY);
-const sessionId = getStableId(sessionStorage, SESSION_KEY);
-const attribution = captureAttribution();
+const localStore = globalThis.window?.localStorage;
+const sessionStore = globalThis.window?.sessionStorage;
+const sessionId = sessionStore ? getStableId(sessionStore, SESSION_KEY) : null;
 
 function readQueue() {
   const now = Date.now();
@@ -96,12 +79,17 @@ async function send(event) {
 }
 
 export async function trackWorksideEvent(eventName, properties = {}, options = {}) {
+  const consent = readConsentPreferences();
+  if (!isAnalyticsAllowed(consent)) {
+    return { suppressed: true, reason: 'analytics_consent_not_granted' };
+  }
+  const attribution = getAdvertisingAttributionSnapshot({ storage: localStore, consent });
   const event = {
     eventId: options.eventId || createId(),
     eventName,
     productId: 'sageset',
     occurredAt: options.occurredAt || new Date().toISOString(),
-    anonymousId: visitorId,
+    anonymousId: attribution.anonymousId,
     userId: auth.currentUser?.uid || null,
     sessionId,
     platform: 'web',
@@ -110,9 +98,13 @@ export async function trackWorksideEvent(eventName, properties = {}, options = {
     page: options.page || safePage(),
     screen: null,
     properties,
-    attribution: attribution.latestTouch || attribution.firstTouch || {},
+    attribution: {
+      firstTouch: attribution.firstTouch,
+      latestTouch: attribution.latestTouch,
+      consent: attribution.consent,
+    },
     appVersion: import.meta.env.VITE_APP_VERSION || null,
-    schemaVersion: 1,
+    schemaVersion: 2,
   };
   // Local release checks should validate the site without polluting staging
   // analytics or depending on a cross-origin collector. Production behavior is

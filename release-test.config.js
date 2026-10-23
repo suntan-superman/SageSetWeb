@@ -46,12 +46,6 @@ export default {
       description: "Trial begins on billing success confirmation"
     },
     {
-      name: "Subscribe",
-      classification: "required",
-      blocking: true,
-      description: "Paid subscription or subscription confirmation event"
-    },
-    {
       name: "CheckoutCancelled",
       classification: "recommended",
       blocking: false,
@@ -68,8 +62,8 @@ export default {
       name: "Purchase",
       classification: "safe-skipped",
       blocking: false,
-      description: "Stripe confirmation if separate from Subscribe",
-      reason: "Skipped because SageSet currently uses Subscribe as the safe confirmation event and release tests must not create real charges."
+      description: "First successful paid invoice",
+      reason: "Paid conversion and revenue are accepted only from the signed Stripe webhook; release tests must not create real charges."
     }
   ],
   meta: {
@@ -96,12 +90,6 @@ export default {
         description: "Trial begins on billing success confirmation"
       },
       {
-        name: "Subscribe",
-        classification: "required",
-        blocking: true,
-        description: "Paid subscription or subscription confirmation event"
-      },
-      {
         name: "CheckoutCancelled",
         classification: "recommended",
         blocking: false,
@@ -118,11 +106,11 @@ export default {
         name: "Purchase",
         classification: "safe-skipped",
         blocking: false,
-        description: "Stripe confirmation if separate from Subscribe",
-        reason: "Skipped because SageSet currently uses Subscribe as the safe confirmation event and release tests must not create real charges."
+        description: "First successful paid invoice",
+        reason: "Paid conversion and revenue are accepted only from the signed Stripe webhook; release tests must not create real charges."
       }
     ],
-    requiredEvents: ["PageView", "ViewContent", "StartTrial", "Subscribe"],
+    requiredEvents: ["PageView", "ViewContent", "StartTrial"],
     skippedEvents: [
       {
         eventName: "CompleteRegistration",
@@ -130,15 +118,10 @@ export default {
       },
       {
         eventName: "Purchase",
-        reason: "No separate safe Purchase event is currently emitted; Subscribe is the subscription confirmation event."
+        reason: "Paid conversion and revenue are accepted only from the signed Stripe webhook; release tests must not create real charges."
       }
     ],
-    payloadRules: {
-      Subscribe: {
-        optionalFields: ["currency", "value", "content_type"],
-        forbiddenFields: ["email", "phone", "name", "password"]
-      }
-    },
+    payloadRules: {},
     routes: [
       "/?release_check=meta",
       "/signup?release_check=meta",

@@ -47,14 +47,7 @@ export default function SimpleInfoPage({ path }) {
       trackEvent('StartTrial', {
         content_name: 'SageSet Premium',
         content_category: 'subscription',
-        currency: 'USD',
-        value: 9.99,
-      });
-      trackEvent('Subscribe', {
-        content_name: 'SageSet Premium',
-        content_category: 'subscription',
-        currency: 'USD',
-        value: 9.99,
+        trial_type: 'stripe_subscription',
       });
     }
 

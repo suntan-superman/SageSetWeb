@@ -8,6 +8,7 @@ const worksideRoot = resolve(sageSetRoot, '..', 'Workside-Analytics-Dashboard');
 const read = (path) => readFileSync(path, 'utf8');
 
 const browser = read(resolve(webRoot, 'src/services/metaPixel.js'));
+const consent = read(resolve(webRoot, 'src/services/consentPreferences.js'));
 const marketing = read(resolve(webRoot, 'src/pages/MarketingLandingPage.jsx'));
 const home = read(resolve(webRoot, 'src/pages/HomePage.jsx'));
 const auth = read(resolve(webRoot, 'src/pages/AuthPage.jsx'));
@@ -20,7 +21,8 @@ assert.match(browser, /createMetaEventId\('vc'\)/);
 assert.match(browser, /eventID:\s*sharedEventId/);
 assert.match(browser, /eventId:\s*sharedEventId/);
 assert.match(browser, /getMetaMarketingConsent/);
-assert.match(browser, /globalPrivacyControl/);
+assert.match(consent, /globalPrivacyControl/);
+assert.match(consent, /advertising = 'denied'|advertising:\s*gpc \? 'denied'/);
 assert.match(browser, /getAppCheckToken/);
 assert.match(browser, /X-Firebase-AppCheck/);
 assert.match(browser, /meta_browser_event/);

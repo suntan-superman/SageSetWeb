@@ -12,8 +12,27 @@ import {
 import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
+import { getAdvertisingAttributionSnapshot } from '../services/advertisingAttribution.js';
+import { runtimeEnvironment } from '../config/runtimeEnvironment.js';
 
 const AuthContext = createContext(null);
+
+async function linkAdvertisingAttribution(lifecycle = 'session') {
+  if (!auth.currentUser) return null;
+  const linkAttribution = httpsCallable(functions, 'linkAdvertisingAttribution');
+  const snapshot = getAdvertisingAttributionSnapshot();
+  const result = await linkAttribution({
+    lifecycle,
+    anonymousId: snapshot.anonymousId,
+    attribution: {
+      schemaVersion: 2,
+      firstTouch: snapshot.firstTouch,
+      latestTouch: snapshot.latestTouch,
+      consent: snapshot.consent,
+    },
+  });
+  return result.data;
+}
 
 function buildTrialWindow() {
   const trialStartedAt = new Date();
@@ -147,6 +166,7 @@ export function AuthProvider({ children }) {
         setIsAdmin(adminClaim);
         setUser(user);
         await loadUserData(user.uid);
+        try { await linkAdvertisingAttribution('session'); } catch { /* Retried on a later authenticated session. */ }
       } else {
         setUser(null);
         setUserData(null);
@@ -206,13 +226,16 @@ export function AuthProvider({ children }) {
       })
     );
 
-    await sendSageSetVerificationEmail();
+    await linkAdvertisingAttribution('registration');
+
+    if (runtimeEnvironment.notificationsEnabled) await sendSageSetVerificationEmail();
 
     try {
+      if (!runtimeEnvironment.notificationsEnabled) throw Object.assign(new Error('Staging notification delivery is disabled.'), { suppressed: true });
       const sendSmsConfirmation = httpsCallable(functions, 'sendSmsConfirmation');
       await sendSmsConfirmation({ phone: phone.trim() });
     } catch (smsError) {
-      console.warn('SMS confirmation could not be sent:', smsError);
+      if (!smsError?.suppressed) console.warn('SMS confirmation could not be sent:', smsError);
     }
 
     await loadUserData(userCredential.user.uid);
@@ -246,6 +269,7 @@ export function AuthProvider({ children }) {
           authProvider: 'apple',
         })
       );
+      await linkAdvertisingAttribution('registration');
     } else {
       await setDoc(
         profileRef,
@@ -276,6 +300,7 @@ export function AuthProvider({ children }) {
     if (!auth.currentUser) {
       throw new Error('No signed-in user.');
     }
+    if (!runtimeEnvironment.notificationsEnabled) return { suppressed: true, reason: 'staging_notifications_disabled' };
     await auth.currentUser.getIdToken(true);
     const sendVerificationEmail = httpsCallable(functions, 'sendVerificationEmail');
     const result = await sendVerificationEmail({});
@@ -325,6 +350,10 @@ export function AuthProvider({ children }) {
       { merge: true }
     );
 
+    if (!runtimeEnvironment.notificationsEnabled) {
+      await loadUserData(auth.currentUser.uid);
+      return { suppressed: true, reason: 'staging_notifications_disabled' };
+    }
     const sendSmsConfirmation = httpsCallable(functions, 'sendSmsConfirmation');
     const result = await sendSmsConfirmation({ phone: cleanedPhone });
     await loadUserData(auth.currentUser.uid);
@@ -368,6 +397,7 @@ export function AuthProvider({ children }) {
     if (!phone) {
       throw new Error('No mobile phone number is on file.');
     }
+    if (!runtimeEnvironment.notificationsEnabled) return { suppressed: true, reason: 'staging_notifications_disabled' };
     const sendSmsConfirmation = httpsCallable(functions, 'sendSmsConfirmation');
     const result = await sendSmsConfirmation({ phone });
     await refreshUserData();
@@ -378,6 +408,7 @@ export function AuthProvider({ children }) {
     if (!auth.currentUser) {
       throw new Error('No signed-in user.');
     }
+    if (!runtimeEnvironment.notificationsEnabled) return { suppressed: true, reason: 'staging_notifications_disabled' };
     const verifySmsConfirmation = httpsCallable(functions, 'verifySmsConfirmation');
     const result = await verifySmsConfirmation({ code });
     await refreshUserData();

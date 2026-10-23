@@ -7,6 +7,7 @@
     "start": "vite --port 3000 --open",
     "dev": "vite",
     "build": "vite build",
+    "build:staging": "vite build --mode staging && node scripts/scan-staging-bundle.mjs",
     "preview": "vite preview",
     "pixel:test": "node scripts/verify-meta-pixel.mjs",
     "pixel:test:live": "node scripts/verify-meta-pixel.mjs --live",
@@ -22,7 +23,10 @@
     "verify:gamification-invitations": "node ./scripts/verify-gamification-invitations.mjs",
     "verify:workout-flexibility-panel": "node ./scripts/verify-workout-flexibility-panel.mjs",
     "test:puppeteer": "node ./scripts/verify-release.js --only routes",
-    "test:meta": "node ./scripts/verify-release.js --only meta"
+    "test:meta": "node ./scripts/verify-release.js --only meta",
+    "test:attribution": "node --test scripts/test-attribution-consent.mjs",
+    "test:staging-config": "node --test scripts/test-staging-configuration.mjs",
+    "scan:staging-bundle": "node scripts/scan-staging-bundle.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -37,7 +41,7 @@
     "firebase": "^12.7.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^6.30.1"
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

@@ -26,7 +26,10 @@ import VerifiedSquatSharePage from './pages/VerifiedSquatSharePage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { initMetaPixel, trackPageView } from './services/metaPixel.js';
 import { flushWorksideEvents, trackWorksideEvent } from './services/worksideAnalytics.js';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import ConsentPreferences from './components/ConsentPreferences.jsx';
+import { CONSENT_CHANGED_EVENT } from './services/consentPreferences.js';
+import { runtimeEnvironment } from './config/runtimeEnvironment.js';
 
 // Protected route component for admin pages
 function ProtectedAdminRoute({ children }) {
@@ -83,6 +86,13 @@ function ProtectedMemberRoute({ children }) {
 
 function PixelRouteTracker() {
   const location = useLocation();
+  const [consentRevision, setConsentRevision] = useState(0);
+
+  useEffect(() => {
+    const handleConsentChange = () => setConsentRevision((value) => value + 1);
+    window.addEventListener(CONSENT_CHANGED_EVENT, handleConsentChange);
+    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, handleConsentChange);
+  }, []);
 
   useEffect(() => {
     initMetaPixel();
@@ -93,7 +103,7 @@ function PixelRouteTracker() {
     const eventName = location.pathname === '/pricing' ? 'pricing_view' : 'landing_page_view';
     void trackWorksideEvent(eventName, { route: location.pathname });
     void flushWorksideEvents();
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, consentRevision]);
 
   return null;
 }
@@ -161,7 +171,13 @@ function MarketingRoute({ path }) {
 export default function App() {
   return (
     <AuthProvider>
+      {runtimeEnvironment.isStaging ? (
+        <div className="fixed inset-x-0 top-0 z-[100] bg-amber-400 px-3 py-1 text-center text-xs font-bold tracking-wide text-gray-950">
+          SAGESET STAGING — TEST DATA ONLY
+        </div>
+      ) : null}
       <PixelRouteTracker />
+      <ConsentPreferences />
       <Routes>
         {/* Admin routes - no Layout wrapper */}
         <Route path="/admin" element={<AdminLoginPage />} />
