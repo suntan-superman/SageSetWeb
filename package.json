@@ -26,6 +26,7 @@
     "test:meta": "node ./scripts/verify-release.js --only meta",
     "test:attribution": "node --test scripts/test-attribution-consent.mjs",
     "test:reddit-pixel": "node --test scripts/test-reddit-pixel.mjs",
+    "verify:reddit-staging-disabled": "node scripts/verify-reddit-staging-disabled.mjs",
     "test:staging-config": "node --test scripts/test-staging-configuration.mjs",
     "scan:staging-bundle": "node scripts/scan-staging-bundle.mjs"
   },
