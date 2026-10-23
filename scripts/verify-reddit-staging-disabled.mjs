@@ -27,14 +27,17 @@ try {
   await page.reload({waitUntil: 'networkidle2', timeout: 45_000});
   const result = await page.evaluate(() => ({
     banner: document.body.innerText.includes('SAGESET STAGING — TEST DATA ONLY'),
-    redditDisclosure: document.body.innerText.includes('Reddit'),
     redditDebugEvents: window.__SAGESET_REDDIT_PIXEL_EVENTS__ || [],
     providerScripts: [...document.scripts].map((script) => script.src).filter((src) => /reddit/i.test(src)),
   }));
   assert.equal(result.banner, true);
-  assert.equal(result.redditDisclosure, true);
   assert.deepEqual(result.redditDebugEvents, []);
   assert.deepEqual(result.providerScripts, []);
+  assert.deepEqual(redditRequests, []);
+
+  await page.goto(`${STAGING_URL}/privacy`, {waitUntil: 'networkidle2', timeout: 45_000});
+  const redditDisclosure = await page.evaluate(() => document.body.innerText.includes('Reddit'));
+  assert.equal(redditDisclosure, true);
   assert.deepEqual(redditRequests, []);
   console.log('Staging browser verification passed: explicit consent cannot activate unconfigured Reddit delivery.');
 } finally {
