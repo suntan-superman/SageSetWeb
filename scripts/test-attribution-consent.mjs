@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {
+  CONSENT_VERSION,
   CONSENT_STORAGE_KEY,
   readConsentPreferences,
   saveConsentPreferences,
@@ -9,6 +11,7 @@ import {
 import {
   ATTRIBUTION_KEY,
   captureAdvertisingAttribution,
+  clearAdvertisingAttribution,
   getAdvertisingAttributionSnapshot,
   mergeAttributionTouches,
   parseLandingTouch,
@@ -60,8 +63,19 @@ test('Reddit click ID remains exact only with advertising consent', () => {
   assert.equal(allowed.redditClickId, 'Exact_Reddit-123');
   assert.equal(allowed.campaignId, 'cmp:7');
   const denied = parseLandingTouch({ url, occurredAt: '2026-10-22T12:00:00Z', consent: { ...granted, advertising: 'denied' } });
-  assert.equal(Object.hasOwn(denied, 'redditClickId'), false);
-  assert.equal(Object.hasOwn(denied, 'campaignId'), false);
+  assert.equal(denied, null);
+});
+
+test('consent denial clears previously stored advertising attribution', () => {
+  const paid = { provider: 'reddit', redditClickId: 'reddit-1', touchedAt: '2026-10-20T12:00:00Z' };
+  const denied = { ...granted, advertising: 'denied' };
+  assert.deepEqual(
+    mergeAttributionTouches({ firstTouch: paid, latestTouch: paid }, null, denied),
+    { firstTouch: null, latestTouch: null }
+  );
+  const store = storage({ [ATTRIBUTION_KEY]: JSON.stringify({ firstTouch: paid, latestTouch: paid }) });
+  clearAdvertisingAttribution({ storage: store });
+  assert.equal(store.getItem(ATTRIBUTION_KEY), null);
 });
 
 test('first touch is immutable and latest touch advances by time', () => {
@@ -94,5 +108,19 @@ test('snapshot uses stable anonymous identity and stores no personal profile', (
   assert.ok(store.getItem(ATTRIBUTION_KEY));
   const repeated = captureAdvertisingAttribution({ storage: store, url: 'https://sagesetfitness.com/', consent: granted });
   assert.equal(repeated.firstTouch.googleClickId, 'gclid-1');
+});
+
+test('CAPI-only consent and privacy disclosure excludes the browser Reddit Pixel', () => {
+  assert.equal(CONSENT_VERSION, '2026-10-23-capi-only');
+  const consentUi = fs.readFileSync(new URL('../src/components/ConsentPreferences.jsx', import.meta.url), 'utf8');
+  const authContext = fs.readFileSync(new URL('../src/context/AuthContext.jsx', import.meta.url), 'utf8');
+  const privacy = fs.readFileSync(new URL('../src/pages/PrivacyPolicyPage.jsx', import.meta.url), 'utf8');
+  assert.match(consentUi, /does not load the Reddit Pixel/);
+  assert.match(privacy, /does not load the Reddit Pixel or send browser-side Reddit conversion events/);
+  assert.match(privacy, /Global Privacy Control and withdrawal of advertising consent stop future Reddit delivery/);
+  assert.doesNotMatch(privacy, /public marketing pages may use the Reddit Pixel/);
+  assert.match(consentUi, /clearAdvertisingAttribution/);
+  assert.match(authContext, /CONSENT_CHANGED_EVENT/);
+  assert.match(authContext, /linkAdvertisingAttribution\('session'\)/);
 });
 

@@ -25,7 +25,6 @@ import ConceptValidationPage from './pages/ConceptValidationPage.jsx';
 import VerifiedSquatSharePage from './pages/VerifiedSquatSharePage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { initMetaPixel, trackPageView } from './services/metaPixel.js';
-import { trackRedditPageVisit } from './services/redditPixel.js';
 import { flushWorksideEvents, trackWorksideEvent } from './services/worksideAnalytics.js';
 import { useEffect, useState } from 'react';
 import ConsentPreferences from './components/ConsentPreferences.jsx';
@@ -101,7 +100,6 @@ function PixelRouteTracker() {
 
   useEffect(() => {
     trackPageView();
-    trackRedditPageVisit({ pathname: location.pathname, search: location.search });
     const eventName = location.pathname === '/pricing' ? 'pricing_view' : 'landing_page_view';
     void trackWorksideEvent(eventName, { route: location.pathname });
     void flushWorksideEvents();

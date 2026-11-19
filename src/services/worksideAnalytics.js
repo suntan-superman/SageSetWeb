@@ -6,12 +6,8 @@ import { getAdvertisingAttributionSnapshot } from './advertisingAttribution.js';
 import { isAnalyticsAllowed, readConsentPreferences } from './consentPreferences.js';
 import { runtimeEnvironment } from '../config/runtimeEnvironment.js';
 
-const ENDPOINT = (runtimeEnvironment.isStaging ?
-  runtimeEnvironment.workside.endpoint :
-  (import.meta.env.VITE_WORKSIDE_ANALYTICS_URL || 'https://workside-analytics-staging.web.app')).replace(/\/$/, '');
-const ENVIRONMENT = runtimeEnvironment.isStaging ?
-  runtimeEnvironment.workside.environment :
-  (import.meta.env.VITE_WORKSIDE_ANALYTICS_ENVIRONMENT || 'staging');
+const ENDPOINT = String(runtimeEnvironment.workside?.endpoint || '').replace(/\/$/, '');
+const ENVIRONMENT = runtimeEnvironment.workside?.environment || runtimeEnvironment.name;
 const SESSION_KEY = 'sageset.analytics.session.v1';
 const QUEUE_KEY = 'sageset.analytics.queue.v1';
 const MAX_QUEUE_SIZE = 100;
@@ -106,6 +102,9 @@ export async function trackWorksideEvent(eventName, properties = {}, options = {
     appVersion: import.meta.env.VITE_APP_VERSION || null,
     schemaVersion: 2,
   };
+  if (!ENDPOINT) {
+    return {suppressed: true, reason: 'workside_production_unavailable', eventId: event.eventId};
+  }
   // Local release checks should validate the site without polluting staging
   // analytics or depending on a cross-origin collector. Production behavior is
   // unchanged, including queued retry delivery.
@@ -127,6 +126,7 @@ export async function trackWorksideEvent(eventName, properties = {}, options = {
 }
 
 export async function flushWorksideEvents() {
+  if (!ENDPOINT) return {sent: 0, remaining: 0, suppressed: true};
   if (IS_LOCAL_DEVELOPMENT || IS_META_RELEASE_CHECK) {
     return { sent: 0, remaining: 0, suppressed: true };
   }

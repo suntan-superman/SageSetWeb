@@ -1,7 +1,7 @@
 export const CONSENT_STORAGE_KEY = 'sageset.consent.v2';
 export const LEGACY_META_CONSENT_KEY = 'sageset.marketingConsent.v1';
 export const CONSENT_CHANGED_EVENT = 'sageset:consent-changed';
-export const CONSENT_VERSION = '2026-10-22-draft';
+export const CONSENT_VERSION = '2026-10-23-capi-only';
 
 // These hooks intentionally remain inactive until jurisdiction, retention, and
 // deletion policies have been approved. They make the eventual policy boundary

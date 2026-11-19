@@ -22,7 +22,7 @@ test('valid staging configuration is explicit and provider delivery is disabled'
   assert.equal(result.firebase.projectId, 'sageset-stage-123');
   assert.equal(result.notificationsEnabled, false);
   assert.deepEqual(result.meta, {pixelId: '', capiEndpoint: '', testEventCode: ''});
-  assert.deepEqual(result.reddit, {enabled: false, pixelId: '', testMode: false});
+  assert.deepEqual(result.reddit, {enabled: false, pixelId: '', testMode: false, channel: 'capi-only'});
 });
 
 test('staging never inherits production Firebase or origin values', () => {
@@ -37,26 +37,51 @@ test('staging rejects missing values and environment mismatch', () => {
   assert.throws(() => resolveRuntimeEnvironment({...valid}, 'https://unexpected.example.net'));
 });
 
-test('staging rejects notifications and unguarded advertising destinations', () => {
+test('staging rejects notifications, unguarded destinations, and every browser Reddit activation input', () => {
   assert.throws(() => resolveRuntimeEnvironment({...valid, VITE_OUTBOUND_NOTIFICATIONS_ENABLED: 'true'}));
   assert.throws(() => resolveRuntimeEnvironment({...valid, VITE_META_CAPI_ENDPOINT: 'https://example.test/meta'}));
-  assert.throws(() => resolveRuntimeEnvironment({...valid, VITE_REDDIT_TRACKING_ENABLED: 'true'}));
-  assert.throws(() => resolveRuntimeEnvironment({
-    ...valid, VITE_REDDIT_TRACKING_ENABLED: 'true', VITE_REDDIT_PIXEL_ID: 'stage_pixel_123',
-  }));
-  const testMode = resolveRuntimeEnvironment({
-    ...valid, VITE_REDDIT_TRACKING_ENABLED: 'true', VITE_REDDIT_PIXEL_ID: 'stage_pixel_123',
-    VITE_REDDIT_TEST_MODE: 'true',
-  });
-  assert.deepEqual(testMode.reddit, {enabled: true, pixelId: 'stage_pixel_123', testMode: true});
+  for (const override of [
+    {VITE_REDDIT_TRACKING_ENABLED: 'true'},
+    {VITE_REDDIT_PIXEL_ID: 'stage_pixel_123'},
+    {VITE_REDDIT_TEST_MODE: 'true'},
+    {VITE_REDDIT_TRACKING_ENABLED: 'true', VITE_REDDIT_PIXEL_ID: 'stage_pixel_123', VITE_REDDIT_TEST_MODE: 'true'},
+  ]) assert.throws(() => resolveRuntimeEnvironment({...valid, ...override}), /CAPI-only release/);
 });
 
-test('production branch retains legacy behavior until separately migrated', () => {
+test('production remains CAPI-only and does not fall back to the staging analytics collector', () => {
   const result = resolveRuntimeEnvironment({MODE: 'production'});
   assert.equal(result.name, 'production');
   assert.equal(result.isStaging, false);
   assert.equal(result.notificationsEnabled, true);
-  assert.deepEqual(result.reddit, {enabled: false, pixelId: '', testMode: false});
+  assert.equal(result.workside, null);
+  assert.deepEqual(result.reddit, {enabled: false, pixelId: '', testMode: false, channel: 'capi-only'});
+});
+
+test('production accepts only an explicit production Workside collector', () => {
+  assert.throws(() => resolveRuntimeEnvironment({
+    MODE: 'production',
+    VITE_WORKSIDE_ANALYTICS_URL: 'https://workside-analytics-staging.web.app',
+    VITE_WORKSIDE_ANALYTICS_ENVIRONMENT: 'staging',
+  }), /explicit production HTTPS collector/);
+  assert.throws(() => resolveRuntimeEnvironment({
+    MODE: 'production',
+    VITE_WORKSIDE_ANALYTICS_URL: 'https://analytics.example.com',
+    VITE_WORKSIDE_ANALYTICS_ENVIRONMENT: 'staging',
+  }), /explicit production HTTPS collector/);
+  assert.deepEqual(resolveRuntimeEnvironment({
+    MODE: 'production',
+    VITE_WORKSIDE_ANALYTICS_URL: 'https://analytics.example.com',
+    VITE_WORKSIDE_ANALYTICS_ENVIRONMENT: 'production',
+  }).workside, {endpoint: 'https://analytics.example.com', environment: 'production'});
+});
+
+test('production configuration rejects every browser Reddit activation flag', () => {
+  assert.throws(() => resolveRuntimeEnvironment({
+    MODE: 'production', VITE_APP_ENV: 'production', VITE_REDDIT_TEST_MODE: 'true',
+  }), /CAPI-only release/);
+  assert.throws(() => resolveRuntimeEnvironment({
+    MODE: 'production', VITE_APP_ENV: 'production', VITE_REDDIT_TRACKING_ENABLED: 'true',
+  }), /CAPI-only release/);
 });
 
 test('browser registration delegates trial authority to the staging Function', () => {

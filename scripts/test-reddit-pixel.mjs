@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {
   initRedditPixel,
@@ -44,9 +45,20 @@ test('granted consent initializes once and supports a public PageVisit without P
   assert.equal(first.sent, true);
   assert.equal(state.inserted.length, 1);
   assert.match(state.inserted[0].src, /^https:\/\/www\.redditstatic\.com\/ads\/pixel\.js\?pixel_id=/);
+  assert.deepEqual(window.rdt.callQueue[0], ['init', enabled.pixelId]);
+  assert.deepEqual(window.rdt.callQueue[1], ['track', 'PageVisit', { conversionId: 'page:one' }]);
   assert.equal(trackRedditPageVisit({ pathname: '/pricing', consent: granted, config: enabled }).reason, 'duplicate_suppressed');
   const serialized = JSON.stringify(window.__SAGESET_REDDIT_PIXEL_EVENTS__);
   assert.doesNotMatch(serialized, /email|phone|firebase|stripe|injury|workout/i);
+});
+
+test('consent withdrawal stops subsequent PageVisit and SignUp delivery', () => {
+  browser('/pricing');
+  assert.equal(trackRedditPageVisit({ pathname: '/pricing', consent: granted, config: enabled, conversionId: 'page:before' }).sent, true);
+  const callsBeforeWithdrawal = window.rdt.callQueue.length;
+  assert.equal(trackRedditPageVisit({ pathname: '/features', consent: denied, config: enabled, conversionId: 'page:after' }).sent, false);
+  assert.equal(trackRedditSignUp({ conversionId: 'registration:after', consent: denied, config: enabled }).sent, false);
+  assert.equal(window.rdt.callQueue.length, callsBeforeWithdrawal);
 });
 
 test('authenticated and sensitive routes are excluded even with consent', () => {
@@ -69,4 +81,13 @@ test('missing configuration fails closed and no provider script is inserted', ()
   const state = browser('/');
   assert.equal(trackRedditPageVisit({ pathname: '/', consent: granted, config: { enabled: false, pixelId: '' } }).sent, false);
   assert.equal(state.inserted.length, 0);
+});
+
+test('shipped application has no browser Reddit Pixel invocation points', () => {
+  const app = fs.readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+  const auth = fs.readFileSync(new URL('../src/context/AuthContext.jsx', import.meta.url), 'utf8');
+  for (const source of [app, auth]) {
+    assert.doesNotMatch(source, /redditPixel\.js/);
+    assert.doesNotMatch(source, /trackReddit(?:PageVisit|SignUp)|initRedditPixel/);
+  }
 });

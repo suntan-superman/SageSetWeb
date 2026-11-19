@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { COPYRIGHT_NOTICE } from '../constants/appInfo';
 import { useAuth } from '../context/AuthContext.jsx';
+import SeoMetadata from './SeoMetadata.jsx';
 
 const navLinkClass = ({ isActive }) =>
   [
@@ -32,6 +33,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased text-gray-800 bg-white">
+      <SeoMetadata />
       {/* Sticky, minimal navigation */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-content mx-auto px-6 py-4 flex items-center justify-between">
@@ -64,7 +66,7 @@ export default function Layout({ children }) {
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-700">SageSet</span>
             <span className="text-gray-300">•</span>
-            <span>{COPYRIGHT_NOTICE}</span>
+            <a href="https://worksidesoftware.com/" className="font-medium text-gray-700 hover:text-sage-700">{COPYRIGHT_NOTICE}</a>
           </div>
           <div className="flex items-center gap-6">
             <NavLink to={isSignedIn ? '/dashboard/billing' : '/pricing'} className="hover:text-sage-700 transition-colors">

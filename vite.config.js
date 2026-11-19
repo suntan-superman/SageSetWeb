@@ -1,3 +1,4 @@
+import {mailCredentialGuard} from './build/mailCredentialGuard.js';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolveRuntimeEnvironment } from './src/config/runtimeEnvironment.js';
@@ -31,7 +32,7 @@ export default defineConfig(({ mode }) => {
   if (mode === 'staging') resolveRuntimeEnvironment({...env, ...productionDefaults, MODE: mode});
   const legacyValues = mode === 'staging' ? Object.fromEntries(Object.keys(productionDefaults).map((key) => [key, ''])) : productionDefaults;
   return {
-    plugins: [react(), stagingSafetyPlugin(mode)],
+    plugins: [mailCredentialGuard(), react(), stagingSafetyPlugin(mode)],
     define: Object.fromEntries(Object.entries(legacyValues).map(([key, value]) => [`import.meta.env.${key}`, JSON.stringify(value)])),
     server: {port: 5173, strictPort: true},
   };

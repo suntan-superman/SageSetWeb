@@ -57,9 +57,10 @@ export function parseLandingTouch({ url, referrer = '', occurredAt = new Date().
   const parsed = new URL(url || globalThis.window?.location?.href || 'https://invalid.local/');
   const params = parsed.searchParams;
   const advertisingAllowed = isAdvertisingAllowed(consent || readConsentPreferences());
-  const metaClickId = advertisingAllowed ? exactIdentifier(params.get('fbclid')) : null;
-  const redditClickId = advertisingAllowed ? exactIdentifier(params.get('rdt_cid')) : null;
-  const googleClickId = advertisingAllowed ? exactIdentifier(params.get('gclid')) : null;
+  if (!advertisingAllowed) return null;
+  const metaClickId = exactIdentifier(params.get('fbclid'));
+  const redditClickId = exactIdentifier(params.get('rdt_cid'));
+  const googleClickId = exactIdentifier(params.get('gclid'));
   const source = clean(params.get('utm_source'), 100)?.toLowerCase() || null;
   const provider = redditClickId || source === 'reddit'
     ? 'reddit'
@@ -70,9 +71,9 @@ export function parseLandingTouch({ url, referrer = '', occurredAt = new Date().
         : source
           ? 'organic'
           : 'organic';
-  const campaignId = !advertisingAllowed || provider === 'organic' ? null : entityIdentifier(params.get('campaign_id') || params.get('utm_id'));
-  const adGroupId = !advertisingAllowed || provider === 'organic' ? null : entityIdentifier(params.get('adgroup_id') || params.get('adset_id'));
-  const adId = !advertisingAllowed || provider === 'organic' ? null : entityIdentifier(params.get('ad_id'));
+  const campaignId = provider === 'organic' ? null : entityIdentifier(params.get('campaign_id') || params.get('utm_id'));
+  const adGroupId = provider === 'organic' ? null : entityIdentifier(params.get('adgroup_id') || params.get('adset_id'));
+  const adId = provider === 'organic' ? null : entityIdentifier(params.get('ad_id'));
   const hasCampaign = Boolean(
     metaClickId || redditClickId || googleClickId || source || campaignId || adGroupId || adId
   );
@@ -100,16 +101,9 @@ export function parseLandingTouch({ url, referrer = '', occurredAt = new Date().
 export function mergeAttributionTouches(existing = {}, incoming, consent) {
   const preference = consent || readConsentPreferences();
   const current = existing && typeof existing === 'object' ? existing : {};
+  if (!isAdvertisingAllowed(preference)) return { firstTouch: null, latestTouch: null };
   if (!incoming) return { firstTouch: current.firstTouch || null, latestTouch: current.latestTouch || null };
   const sanitized = { ...incoming };
-  if (!isAdvertisingAllowed(preference)) {
-    delete sanitized.redditClickId;
-    delete sanitized.metaClickId;
-    delete sanitized.googleClickId;
-    delete sanitized.campaignId;
-    delete sanitized.adGroupId;
-    delete sanitized.adId;
-  }
   const incomingTime = Date.parse(sanitized.touchedAt || '');
   if (!Number.isFinite(incomingTime)) return { firstTouch: current.firstTouch || null, latestTouch: current.latestTouch || null };
   const firstTouch = current.firstTouch || sanitized;
@@ -119,6 +113,10 @@ export function mergeAttributionTouches(existing = {}, incoming, consent) {
     ? sanitized
     : current.latestTouch || sanitized;
   return { firstTouch, latestTouch };
+}
+
+export function clearAdvertisingAttribution({ storage } = {}) {
+  try { safeStorage(storage)?.removeItem(ATTRIBUTION_KEY); } catch { /* already unavailable */ }
 }
 
 export function captureAdvertisingAttribution({ storage, url, referrer, now = () => new Date(), consent } = {}) {

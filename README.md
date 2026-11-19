@@ -10,7 +10,7 @@ node createUser.mjs --email admin@sagesetfitness.com --password NewPassword456!
 //////////////////////////////////////////////////////
 Access admin portal at /admin route of your web app
 
-admin@sagesetfitness.com
+admin@worksidesoftware.com
 P55
 /////////////////////////////////////////////////////
 

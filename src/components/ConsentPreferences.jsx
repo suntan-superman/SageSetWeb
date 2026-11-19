@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
   CONSENT_CHANGED_EVENT,
+  isAdvertisingAllowed,
   readConsentPreferences,
   saveConsentPreferences,
 } from '../services/consentPreferences.js';
+import { clearAdvertisingAttribution } from '../services/advertisingAttribution.js';
 
 export default function ConsentPreferences() {
   const [preference, setPreference] = useState(() => readConsentPreferences());
@@ -21,6 +23,7 @@ export default function ConsentPreferences() {
 
   const save = (next) => {
     const saved = saveConsentPreferences(next);
+    if (!isAdvertisingAllowed(saved)) clearAdvertisingAttribution();
     setPreference(saved);
     setAnalytics(saved.analytics === 'granted');
     setAdvertising(saved.advertising === 'granted');
@@ -33,7 +36,7 @@ export default function ConsentPreferences() {
         <div className="fixed inset-x-4 bottom-4 z-[100] mx-auto max-w-2xl rounded-xl border border-sage-300 bg-white p-5 text-gray-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="privacy-choices-title">
           <h2 id="privacy-choices-title" className="text-lg font-semibold">Privacy choices</h2>
           <p className="mt-2 text-sm leading-6 text-gray-700">
-            Draft copy for legal review: choose whether SageSet may use analytics to improve the service and advertising technologies to measure campaigns. Essential account and security functions remain active.
+            Choose whether SageSet may use analytics to improve the service and consent-aware advertising measurement to understand campaign results. Essential account and security functions remain active.
           </p>
           {preference.gpc && (
             <p className="mt-2 rounded-md bg-sage-50 p-3 text-sm" role="status">
@@ -47,7 +50,7 @@ export default function ConsentPreferences() {
             </label>
             <label className="flex items-start gap-3">
               <input className="mt-1 h-4 w-4" type="checkbox" checked={advertising && !preference.gpc} disabled={preference.gpc} onChange={(event) => setAdvertising(event.target.checked)} />
-              <span><strong>Advertising</strong><span className="block text-sm text-gray-600">Allow consent-gated campaign measurement for Meta and Reddit when those integrations are separately enabled.</span></span>
+              <span><strong>Advertising</strong><span className="block text-sm text-gray-600">Allow consent-gated campaign attribution. Reddit measurement uses server-side conversion events only; SageSet does not load the Reddit Pixel.</span></span>
             </label>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">

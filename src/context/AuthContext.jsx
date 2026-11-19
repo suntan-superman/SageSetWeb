@@ -13,8 +13,8 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { getAdvertisingAttributionSnapshot } from '../services/advertisingAttribution.js';
+import { CONSENT_CHANGED_EVENT } from '../services/consentPreferences.js';
 import { runtimeEnvironment } from '../config/runtimeEnvironment.js';
-import { trackRedditSignUp } from '../services/redditPixel.js';
 
 const AuthContext = createContext(null);
 
@@ -134,6 +134,18 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const synchronizeConsent = () => {
+      if (auth.currentUser) {
+        void linkAdvertisingAttribution('session').catch(() => {
+          /* Retried on a later authenticated session. */
+        });
+      }
+    };
+    window.addEventListener(CONSENT_CHANGED_EVENT, synchronizeConsent);
+    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, synchronizeConsent);
+  }, []);
+
   const login = async (email, password) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     await loadUserData(userCredential.user.uid);
@@ -185,8 +197,7 @@ export function AuthProvider({ children }) {
     const initializeTrial = httpsCallable(functions, 'initializeUserTrial');
     await initializeTrial({});
 
-    const attributionResult = await linkAdvertisingAttribution('registration');
-    trackRedditSignUp({ conversionId: attributionResult?.registrationConversionId });
+    await linkAdvertisingAttribution('registration');
 
     if (runtimeEnvironment.notificationsEnabled) await sendSageSetVerificationEmail();
 
@@ -229,8 +240,7 @@ export function AuthProvider({ children }) {
           authProvider: 'apple',
         })
       );
-      const attributionResult = await linkAdvertisingAttribution('registration');
-      trackRedditSignUp({ conversionId: attributionResult?.registrationConversionId });
+      await linkAdvertisingAttribution('registration');
     } else {
       await setDoc(
         profileRef,

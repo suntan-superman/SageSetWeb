@@ -17,20 +17,17 @@ const parseUrl = (value, name) => {
 const isFalse = (value) => String(value || '').trim().toLowerCase() === 'false';
 const isTrue = (value) => String(value || '').trim().toLowerCase() === 'true';
 
-function redditConfiguration(env, { staging = false } = {}) {
+function redditConfiguration(env) {
   const trackingEnabled = isTrue(env.VITE_REDDIT_TRACKING_ENABLED);
-  const pixelId = String(env.VITE_REDDIT_PIXEL_ID || '').trim();
   const testMode = isTrue(env.VITE_REDDIT_TEST_MODE);
-  if (trackingEnabled && !/^[A-Za-z0-9_-]{5,100}$/.test(pixelId)) {
-    throw new Error('[SageSet configuration] Reddit tracking requires an explicit valid Pixel ID.');
-  }
-  if (staging && trackingEnabled && !testMode) {
-    throw new Error('[SageSet configuration] Staging Reddit tracking requires explicit test mode.');
+  if (trackingEnabled || testMode || String(env.VITE_REDDIT_PIXEL_ID || '').trim()) {
+    throw new Error('[SageSet configuration] Browser Reddit Pixel is disabled for the CAPI-only release.');
   }
   return Object.freeze({
-    enabled: trackingEnabled,
-    pixelId: trackingEnabled ? pixelId : '',
-    testMode: staging && trackingEnabled && testMode,
+    enabled: false,
+    pixelId: '',
+    testMode: false,
+    channel: 'capi-only',
   });
 }
 
@@ -48,6 +45,18 @@ export function resolveRuntimeEnvironment(env = {}, browserOrigin = '') {
   const isStaging = name === 'staging';
 
   if (!isStaging) {
+    const worksideValue = String(env.VITE_WORKSIDE_ANALYTICS_URL || '').trim();
+    const worksideEnvironment = String(env.VITE_WORKSIDE_ANALYTICS_ENVIRONMENT || '').trim().toLowerCase();
+    let workside = null;
+    if (worksideValue || worksideEnvironment) {
+      const worksideUrl = parseUrl(required(env, 'VITE_WORKSIDE_ANALYTICS_URL'), 'VITE_WORKSIDE_ANALYTICS_URL');
+      if (worksideUrl.protocol !== 'https:' ||
+          worksideUrl.origin === 'https://workside-analytics-staging.web.app' ||
+          required(env, 'VITE_WORKSIDE_ANALYTICS_ENVIRONMENT') !== 'production') {
+        throw new Error('[SageSet configuration] Production Workside analytics must use an explicit production HTTPS collector.');
+      }
+      workside = {endpoint: worksideUrl.origin, environment: 'production'};
+    }
     return {
       name,
       isStaging: false,
@@ -56,7 +65,7 @@ export function resolveRuntimeEnvironment(env = {}, browserOrigin = '') {
       stripeCheckoutHost: 'checkout.stripe.com',
       firebase: null,
       appCheckSiteKey: null,
-      workside: null,
+      workside,
       meta: null,
       reddit: redditConfiguration(env),
     };
