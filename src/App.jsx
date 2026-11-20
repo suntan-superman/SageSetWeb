@@ -23,6 +23,8 @@ import AdminSprintFeedbackPage from './pages/AdminSprintFeedbackPage.jsx';
 import ProductUpdatesPage from './pages/ProductUpdatesPage.jsx';
 import ConceptValidationPage from './pages/ConceptValidationPage.jsx';
 import VerifiedSquatSharePage from './pages/VerifiedSquatSharePage.jsx';
+import BlogIndexPage from './pages/BlogIndexPage.jsx';
+import BlogPostPage from './pages/BlogPostPage.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { initMetaPixel, trackPageView } from './services/metaPixel.js';
 import { flushWorksideEvents, trackWorksideEvent } from './services/worksideAnalytics.js';
@@ -126,7 +128,6 @@ const infoRoutes = [
   '/before-after',
   '/faq',
   '/supported-devices',
-  '/blog',
   '/billing/success',
   '/billing/cancel',
   '/account/billing',
@@ -284,6 +285,8 @@ export default function App() {
             element={<Layout><ConceptValidationPage path={path} /></Layout>}
           />
         ))}
+        <Route path="/blog" element={<Layout><BlogIndexPage /></Layout>} />
+        <Route path="/blog/:slug" element={<Layout><BlogPostPage /></Layout>} />
         <Route path="/privacy" element={<Layout><PrivacyPolicyPage /></Layout>} />
         <Route path="/terms" element={<Layout><TermsOfServicePage /></Layout>} />
         <Route path="/support" element={<Layout><SupportPage /></Layout>} />

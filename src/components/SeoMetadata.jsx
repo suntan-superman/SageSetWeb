@@ -1,8 +1,12 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { runtimeEnvironment } from '../config/runtimeEnvironment.js';
+import { blogPosts, getBlogPost } from '../data/blogPosts.js';
+import { faqEntries } from '../data/faqEntries.js';
 
 const ORIGIN = 'https://sagesetfitness.com';
+
+
 const pages = {
   '/': ['SageSet Fitness | Personalized Workout Plans & Progress Tracking', 'Build a fitness routine that fits your goals, schedule, and equipment. Plan workouts, track progress, log nutrition, and use optional AI-assisted recommendations.'],
   '/features': ['SageSet Features | Workouts, Nutrition & Progress', 'Explore SageSet workout planning, set-by-set logging, nutrition estimates, weigh-ins, streaks, and progress tracking in one fitness app.'],
@@ -24,11 +28,50 @@ const pages = {
   '/terms': ['SageSet Terms of Service', 'Read the terms that apply when using SageSet.'],
   '/support': ['SageSet Support', 'Get help with SageSet account access, workout tracking, billing, and app questions.'],
   '/contact': ['Contact SageSet Support', 'Contact the SageSet team for help with the fitness app, your account, or billing.'],
+  '/blog': ['SageSet Blog | Workout and Nutrition Guidance', 'Practical articles on workout planning, nutrition logging, and building a routine that fits your schedule and equipment.'],
 };
+blogPosts.forEach((post) => { pages[`/blog/${post.slug}`] = [`${post.title} | SageSet Blog`, post.description]; });
+
+const organizationNode = { '@type': 'Organization', '@id': `${ORIGIN}/#organization`, name: 'SageSet Fitness', url: ORIGIN };
+
+const mobileApplicationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'MobileApplication',
+  name: 'SageSet Fitness',
+  operatingSystem: 'iOS, Android',
+  applicationCategory: 'HealthApplication',
+  offers: { '@type': 'Offer', price: '9.99', priceCurrency: 'USD', description: '14-day free trial, then $9.99/month' },
+  publisher: { '@id': `${ORIGIN}/#organization` },
+};
+
+const schemaByPath = {
+  '/': () => [organizationNode, { '@context': 'https://schema.org', '@type': 'WebSite', name: 'SageSet Fitness', url: ORIGIN, description: 'A fitness app for workout planning, nutrition logging, and progress tracking.' }],
+  '/download': () => [mobileApplicationSchema],
+  '/pricing': () => [mobileApplicationSchema],
+  '/faq': () => [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqEntries.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) }],
+  '/blog': () => [{ '@context': 'https://schema.org', '@type': 'Blog', name: 'SageSet Blog', url: `${ORIGIN}/blog`, publisher: { '@id': `${ORIGIN}/#organization` } }],
+};
+
+function blogPostSchema(pathname) {
+  const slug = pathname.startsWith('/blog/') ? pathname.slice('/blog/'.length) : null;
+  const post = slug && getBlogPost(slug);
+  if (!post) return null;
+  return [{
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.description,
+    datePublished: post.publishedAt,
+    dateModified: post.publishedAt,
+    author: { '@type': 'Organization', name: 'SageSet Fitness' },
+    publisher: { '@id': `${ORIGIN}/#organization` },
+    mainEntityOfPage: `${ORIGIN}/blog/${post.slug}`,
+  }];
+}
 
 const privatePath = (path) => /^(\/(admin|dashboard|login|signup|auth|verify-email|verify-sms|complete-profile|concept|billing|account)(\/|$))/.test(path)
   || path.startsWith('/share/verified-squats/')
-  || ['/blog', '/before-after', '/testimonials'].includes(path);
+  || ['/before-after', '/testimonials'].includes(path);
 
 function setMeta(attribute, key, content, value = 'name') {
   let node = document.head.querySelector(`meta[${value}="${key}"]`);
@@ -59,6 +102,20 @@ export default function SeoMetadata() {
       document.head.appendChild(link);
     }
     link.href = canonical;
+
+    const schemaList = (schemaByPath[pathname] ? schemaByPath[pathname]() : null) || blogPostSchema(pathname);
+    let schemaNode = document.head.querySelector('script[data-sageset-schema]');
+    if (schemaList) {
+      if (!schemaNode) {
+        schemaNode = document.createElement('script');
+        schemaNode.type = 'application/ld+json';
+        schemaNode.dataset.sagesetSchema = 'true';
+        document.head.appendChild(schemaNode);
+      }
+      schemaNode.textContent = JSON.stringify(schemaList);
+    } else if (schemaNode) {
+      schemaNode.remove();
+    }
   }, [pathname]);
   return null;
 }

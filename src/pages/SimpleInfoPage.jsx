@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { trackCustomEvent, trackEvent } from '../services/metaPixel';
+import { faqEntries } from '../data/faqEntries.js';
 
 const pageCopy = {
   '/testimonials': {
@@ -10,17 +11,9 @@ const pageCopy = {
     title: 'Before and after',
     body: 'Future transformation stories should emphasize consistency, completed workouts, nutrition habits, and realistic progress rather than exaggerated claims.',
   },
-  '/faq': {
-    title: 'Frequently asked questions',
-    body: 'SageSet Premium is $9.99/month after a 14-day free trial. Your card is saved at checkout, but the first monthly charge begins after the trial unless you cancel. AI nutrition estimates are approximate and designed to support, not replace, user judgment.',
-  },
   '/supported-devices': {
     title: 'Supported devices',
     body: 'SageSet is built mobile-first for iPhone and Android. AR workout experiences remain feature-flagged while device support matures.',
-  },
-  '/blog': {
-    title: 'SageSet blog',
-    body: 'Launch content will focus on workout consistency, simple nutrition logging, streak psychology, and practical plan design.',
   },
   '/billing/success': {
     title: 'Trial started',
@@ -55,6 +48,30 @@ export default function SimpleInfoPage({ path }) {
       trackCustomEvent('CheckoutCancelled', { source: 'stripe_cancel' });
     }
   }, [path]);
+
+  if (path === '/faq') {
+    return (
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-3xl px-6">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900">Frequently asked questions</h1>
+          <dl className="mt-8 space-y-8">
+            {faqEntries.map(({ q, a }) => (
+              <div key={q}>
+                <dt className="text-lg font-semibold text-gray-900">{q}</dt>
+                <dd className="mt-2 text-base leading-7 text-gray-600">{a}</dd>
+              </div>
+            ))}
+          </dl>
+          <a
+            href="/"
+            className="mt-10 inline-flex rounded-lg bg-sage-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-sage-800"
+          >
+            Back to SageSet
+          </a>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-white py-16">
