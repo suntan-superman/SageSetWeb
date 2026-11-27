@@ -6,7 +6,7 @@
   "scripts": {
     "start": "vite --port 3000 --open",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender-meta.mjs",
     "build:staging": "vite build --mode staging && node scripts/scan-staging-bundle.mjs",
     "preview": "vite preview",
     "pixel:test": "node scripts/verify-meta-pixel.mjs",
